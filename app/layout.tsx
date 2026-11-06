@@ -1,23 +1,33 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import "./globals.css";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import { getRequestOrigin } from "@/lib/request";
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getRequestOrigin();
+
+  return {
+    metadataBase: new URL(origin),
+    title: {
+      default: "Lyfter Badges",
+      template: "%s · Lyfter Badges",
+    },
+    description: "Collect badges, earn XP, and level up at Lyfter events.",
+  };
+}
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
       <body>
-        <header>
-          <nav>
-            <a href="/">Inicio</a>
-            <a href="/about">Nosotros</a>
-            <a href="/blog">Blog</a>
-          </nav>
-        </header>
+        <Navbar />
+
         <main>{children}</main>
-        <footer>© {new Date().getFullYear()} Mi Sitio</footer>
+
+        <Footer />
       </body>
     </html>
-  )
+  );
 }
