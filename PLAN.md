@@ -1,5 +1,11 @@
 # Lyfter Badges — Implementation Plan
 
+> **Documento histórico.** Refleja el diseño original y no se actualiza. El pseudo-schema de la
+> sección 4 está desactualizado: usa los roles `ORGANIZER`/`PARTNER`, no incluye `Company` ni
+> `CompanyMember` y omite `Scan.eventBadgeId`. La fuente vigente es
+> [`prisma/schema.prisma`](./prisma/schema.prisma) y su resumen en
+> [`docs/database.md`](./docs/database.md).
+
 Status: **in progress** — Supabase connected (session pooler + `lyfter_shadow`). Phase 0 complete
 (auth + domain schema, single initial migration, `Level` seed, Better Auth route, `proxy.ts`).
 Phase 1 complete (`/login` with Server Actions and validated `next`). Phase 2 complete

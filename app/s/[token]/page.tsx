@@ -4,7 +4,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import ScanClaim from "@/components/scan/ScanClaim";
-import { prisma } from "@/lib/db";
+import {
+  getQrTokenForClaim,
+  getRegistrationForClaim,
+} from "@/lib/gamification/queries";
 import { resolveScanTarget } from "@/lib/scan/target";
 import { getRequestOrigin } from "@/lib/request";
 import { getSession } from "@/lib/session";
@@ -42,10 +45,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     redirect(`/login?next=${encodeURIComponent(`/s/${token}`)}`);
   }
 
-  const qr = await prisma.qrToken.findUnique({
-    where: { token },
-    include: { event: true, eventBadge: { include: { badge: true } } },
-  });
+  const qr = await getQrTokenForClaim(token);
 
   if (!qr || !qr.active) {
     return (
@@ -59,12 +59,10 @@ export default async function ScanPage({ params }: ScanPageProps) {
   let isRegistered = false;
 
   if (!isWelcome) {
-    const registration = await prisma.registration.findUnique({
-      where: {
-        userId_eventId: { userId: session.user.id, eventId: qr.eventId },
-      },
-      select: { id: true },
-    });
+    const registration = await getRegistrationForClaim(
+      session.user.id,
+      qr.eventId,
+    );
     isRegistered = registration !== null;
   }
 
