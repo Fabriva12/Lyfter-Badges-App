@@ -14,7 +14,7 @@ export default function BadgeTypeBreakdown({
   const total = items.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 shadow-2xl shadow-black/30">
+    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8">
       <h2 className="text-lg font-bold text-[#f1f1ed]">Badges by type</h2>
       <p className="mt-1 text-sm text-[#9ca3af]">
         {total} collected badge{total === 1 ? "" : "s"} across every event.

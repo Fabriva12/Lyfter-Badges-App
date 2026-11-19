@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildShareText, buildShareUrls } from "./share";
+import {
+  buildCollectionShareText,
+  buildShareText,
+  buildShareUrls,
+} from "./share";
 
 const badgeName = "Solar Spark";
 const eventName = "Lyfter Summit 2026";
@@ -28,6 +32,35 @@ describe("buildShareText", () => {
   });
 });
 
+describe("buildCollectionShareText", () => {
+  it("includes the attendee, event, badge count and xp", () => {
+    const result = buildCollectionShareText({
+      attendeeName: "Ada Lovelace",
+      eventName,
+      collected: 3,
+      total: 5,
+      xp: 120,
+    });
+
+    expect(result).toContain("Ada Lovelace");
+    expect(result).toContain(eventName);
+    expect(result).toContain("3 of 5 badges");
+    expect(result).toContain("120 XP");
+  });
+
+  it("uses the singular badge word when the event has one badge", () => {
+    const result = buildCollectionShareText({
+      attendeeName: "Ada Lovelace",
+      eventName,
+      collected: 1,
+      total: 1,
+      xp: 50,
+    });
+
+    expect(result).toContain("1 of 1 badge ");
+  });
+});
+
 describe("buildShareUrls", () => {
   it("builds the x intent with the correct host", () => {
     const result = buildShareUrls({ url, text });
@@ -45,6 +78,15 @@ describe("buildShareUrls", () => {
     const result = buildShareUrls({ url, text });
 
     expect(result.facebook).toContain("https://www.facebook.com/sharer/sharer.php");
+  });
+
+  it("builds the linkedin intent with the correct host", () => {
+    const result = buildShareUrls({ url, text });
+
+    expect(result.linkedin).toContain(
+      "https://www.linkedin.com/sharing/share-offsite/",
+    );
+    expect(result.linkedin).toContain(encodeURIComponent(url));
   });
 
   it("url encodes special characters and spaces", () => {
@@ -78,5 +120,6 @@ describe("buildShareUrls", () => {
     expect(first.x).toBe(second.x);
     expect(first.whatsapp).toBe(second.whatsapp);
     expect(first.facebook).toBe(second.facebook);
+    expect(first.linkedin).toBe(second.linkedin);
   });
 });

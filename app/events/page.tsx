@@ -31,12 +31,12 @@ export default async function EventsPage() {
 
   return (
     <main className="min-h-screen bg-[#171b21] text-[#f1f1ed]">
-      <div className="mx-auto max-w-[1240px] px-4 py-16">
-        <header className="mb-10">
+      <div className="mx-auto max-w-[1240px] px-4 py-10 sm:py-16">
+        <header className="mb-8 sm:mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
             Lyfter events
           </p>
-          <h1 className="mt-2 text-3xl font-bold">Events</h1>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Events</h1>
           <p className="mt-2 text-sm text-[#9ca3af]">
             Browse the Lyfter events and jump into the leaderboard of each one.
           </p>
@@ -53,7 +53,7 @@ export default async function EventsPage() {
             </p>
           </section>
         ) : events.length === 0 ? (
-          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 text-center">
+          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 text-center sm:p-8">
             <h2 className="text-lg font-bold text-[#f1f1ed]">
               There are no events yet.
             </h2>
@@ -62,7 +62,7 @@ export default async function EventsPage() {
             </p>
           </section>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {events.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}

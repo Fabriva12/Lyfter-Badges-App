@@ -1,4 +1,4 @@
-import { formatUtcDateTime } from "@/lib/admin/format";
+import { formatDateTime } from "@/lib/admin/format";
 import type { StandVisit } from "@/lib/admin/queries";
 
 interface StandVisitsProps {
@@ -9,7 +9,7 @@ export default function StandVisits({ visits }: StandVisitsProps) {
   if (visits.length === 0) {
     return (
       <p className="rounded-lg border border-[#39424f] bg-[#1f252d] px-4 py-6 text-center text-sm text-[#9ca3af]">
-        Nobody has scanned this stand yet.
+        Todavía nadie escaneó este stand.
       </p>
     );
   }
@@ -25,7 +25,7 @@ export default function StandVisits({ visits }: StandVisitsProps) {
             {visit.attendeeName}
           </span>
           <span className="text-[#9ca3af]">
-            {formatUtcDateTime(visit.scannedAt)} UTC
+            {formatDateTime(visit.scannedAt)}
           </span>
         </li>
       ))}

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import StatCard from "@/components/admin/StatCard";
 import { cardClassName } from "@/components/admin/formStyles";
-import { formatUtcRange } from "@/lib/admin/format";
+import { formatEventRange } from "@/lib/admin/format";
 import type { StandSummary } from "@/lib/admin/queries";
 
 interface PartnerDashboardProps {
@@ -22,28 +22,28 @@ export default function PartnerDashboard({ stands }: PartnerDashboardProps) {
     <div className="space-y-8">
       <header>
         <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
-          Stand console
+          Consola de stand
         </p>
-        <h1 className="mt-2 text-3xl font-bold">Your stands</h1>
+        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Tus stands</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          Traffic for the badges assigned to you. A stand admin only sees their
-          own stand, never the rest of the event.
+          Tráfico de las insignias asignadas a vos. Un admin de stand solo ve su
+          stand, nunca el resto del evento.
         </p>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard label="Stands" value={stands.length} />
         <StatCard
-          label="Total scans"
+          label="Escaneos totales"
           value={totals.scans}
-          hint={`${totals.visitors} visitor check-ins`}
+          hint={`${totals.visitors} registros de visitantes`}
         />
       </div>
 
       {stands.length === 0 ? (
         <p className="rounded-xl border border-[#39424f] bg-[#252c35] px-4 py-8 text-center text-sm text-[#9ca3af]">
-          No stand has been assigned to your account yet. Ask the event admin
-          to link your account to a stand.
+          Todavía no se asignó ningún stand a tu cuenta. Pedí al admin del evento
+          que vincule tu cuenta a un stand.
         </p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
@@ -59,7 +59,7 @@ export default function PartnerDashboard({ stands }: PartnerDashboardProps) {
                     {stand.room ? ` · ${stand.room}` : ""}
                   </p>
                   <p className="mt-1 text-sm text-[#9ca3af]">
-                    {formatUtcRange(stand.startsAt, stand.endsAt)}
+                    {formatEventRange(stand.startsAt, stand.endsAt)}
                   </p>
                 </div>
                 <span className="rounded-full bg-[#36bde9]/10 px-3 py-1 text-xs font-semibold text-[#7fd8f5]">
@@ -69,11 +69,11 @@ export default function PartnerDashboard({ stands }: PartnerDashboardProps) {
 
               <dl className="mt-5 grid grid-cols-2 gap-3 text-center">
                 <div className="rounded-lg bg-[#1f252d] px-2 py-3">
-                  <dt className="text-xs text-[#9ca3af]">Scans</dt>
+                  <dt className="text-xs text-[#9ca3af]">Escaneos</dt>
                   <dd className="mt-1 text-lg font-bold">{stand.scans}</dd>
                 </div>
                 <div className="rounded-lg bg-[#1f252d] px-2 py-3">
-                  <dt className="text-xs text-[#9ca3af]">Visitors</dt>
+                  <dt className="text-xs text-[#9ca3af]">Visitantes</dt>
                   <dd className="mt-1 text-lg font-bold">{stand.visitors}</dd>
                 </div>
               </dl>
@@ -82,7 +82,7 @@ export default function PartnerDashboard({ stands }: PartnerDashboardProps) {
                 href={`/admin/stands/${stand.id}`}
                 className="mt-5 inline-block rounded-lg bg-[#a8d889] px-4 py-2 text-sm font-semibold text-[#263021] transition hover:bg-[#b8e39a]"
               >
-                Open stand
+                Abrir stand
               </Link>
             </li>
           ))}

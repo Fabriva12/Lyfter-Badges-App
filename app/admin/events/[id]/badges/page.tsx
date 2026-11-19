@@ -18,7 +18,7 @@ import {
 import { getRequestOrigin } from "@/lib/request";
 
 export const metadata: Metadata = {
-  title: "Badges & QR · Admin · Lyfter Badges",
+  title: "Insignias y QR · Admin · Lyfter Badges",
 };
 
 interface BadgesPageProps {
@@ -27,9 +27,11 @@ interface BadgesPageProps {
 }
 
 const SAVED_MESSAGES: Record<string, string> = {
-  badge: "Badge added to the event.",
-  token: "QR tokens updated.",
-  partner: "Stand partner updated.",
+  badge: "Insignia agregada al evento.",
+  "badge-updated": "Insignia actualizada.",
+  "badge-removed": "Insignia eliminada del evento.",
+  token: "Tokens QR actualizados.",
+  partner: "Socio del stand actualizado.",
 };
 
 export default async function AdminBadgesPage({
@@ -57,10 +59,10 @@ export default async function AdminBadgesPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold">Badges & QR</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Insignias y QR</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          Each badge gets its own QR token. Print it and stick it on the talk
-          wall or the stand; the welcome token goes at the entrance.
+          Cada insignia tiene su propio token QR. Imprímelo y pégalo en la pared
+          de las charlas o en el stand; el token de bienvenida va en la entrada.
         </p>
       </div>
 
@@ -71,9 +73,9 @@ export default async function AdminBadgesPage({
       <EventTabs eventId={event.id} active="badges" />
 
       <section className={cardClassName}>
-        <h2 className="text-lg font-bold text-[#f1f1ed]">Add a badge</h2>
+        <h2 className="text-lg font-bold text-[#f1f1ed]">Agregar una insignia</h2>
         <p className="mt-1 text-sm text-[#9ca3af]">
-          Pick a name from the catalog or type a new one.
+          Elige un nombre del catálogo o escribe uno nuevo.
         </p>
 
         <div className="mt-5">
@@ -83,12 +85,12 @@ export default async function AdminBadgesPage({
 
       <section className="space-y-4">
         <h2 className="text-lg font-bold text-[#f1f1ed]">
-          Event badges ({badges.length})
+          Insignias del evento ({badges.length})
         </h2>
 
         {badges.length === 0 ? (
           <p className="rounded-xl border border-[#39424f] bg-[#252c35] px-4 py-8 text-center text-sm text-[#9ca3af]">
-            This event has no badges yet. Add the first one above.
+            Este evento todavía no tiene insignias. Agrega la primera arriba.
           </p>
         ) : (
           <ul className="space-y-4">
@@ -106,16 +108,16 @@ export default async function AdminBadgesPage({
       </section>
 
       <section className={cardClassName}>
-        <h2 className="text-lg font-bold text-[#f1f1ed]">Welcome QR</h2>
+        <h2 className="text-lg font-bold text-[#f1f1ed]">QR de bienvenida</h2>
         <p className="mt-1 text-sm text-[#9ca3af]">
-          A welcome token checks the attendee in. It awards no XP; badges only
-          count after check-in.
+          Un token de bienvenida registra la entrada del asistente. No otorga XP;
+          las insignias solo cuentan después del registro.
         </p>
 
         <ul className="mt-5 space-y-3">
           {welcomeTokens.length === 0 ? (
             <li className="text-sm text-[#9ca3af]">
-              No welcome token yet. Create one for the event entrance.
+              Todavía no hay token de bienvenida. Crea uno para la entrada del evento.
             </li>
           ) : (
             welcomeTokens.map((token) => (
@@ -124,7 +126,7 @@ export default async function AdminBadgesPage({
                   token={token}
                   eventId={event.id}
                   origin={origin}
-                  label="Welcome check-in"
+                  label="Registro de bienvenida"
                 />
               </li>
             ))

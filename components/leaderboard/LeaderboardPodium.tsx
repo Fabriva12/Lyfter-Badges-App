@@ -1,7 +1,18 @@
-import type { RankedAttendee } from "@/lib/gamification/leaderboard";
+import type {
+  LeaderboardMetric,
+  RankedAttendee,
+} from "@/lib/gamification/leaderboard";
+
+import {
+  METRIC_ACCENT,
+  METRIC_NOUN,
+  metricUnit,
+  secondaryStats,
+} from "./metrics";
 
 interface LeaderboardPodiumProps {
   entries: RankedAttendee[];
+  metric: LeaderboardMetric;
 }
 
 interface Medal {
@@ -44,12 +55,15 @@ const NO_MEDAL: Medal = {
 // The taller the step, the higher the place. The first place is in the
 // middle and stands on the tallest step.
 const STEP_HEIGHTS = [
-  "sm:min-h-[180px]",
-  "sm:min-h-[230px]",
-  "sm:min-h-[150px]",
+  "sm:min-h-[200px]",
+  "sm:min-h-[250px]",
+  "sm:min-h-[170px]",
 ];
 
-export default function LeaderboardPodium({ entries }: LeaderboardPodiumProps) {
+export default function LeaderboardPodium({
+  entries,
+  metric,
+}: LeaderboardPodiumProps) {
   if (entries.length === 0) {
     return null;
   }
@@ -62,11 +76,13 @@ export default function LeaderboardPodium({ entries }: LeaderboardPodiumProps) {
   );
 
   return (
-    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 shadow-2xl shadow-black/30">
+    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8">
       <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
         Podium
       </p>
-      <h2 className="mt-2 text-xl font-bold text-[#f1f1ed]">Top three</h2>
+      <h2 className="mt-2 text-xl font-bold text-[#f1f1ed]">
+        Top three by {METRIC_NOUN[metric]}
+      </h2>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
         {steps.map((entry, index) => {
@@ -87,8 +103,16 @@ export default function LeaderboardPodium({ entries }: LeaderboardPodiumProps) {
               <p className="mt-3 w-full truncate text-sm font-bold text-[#f1f1ed]">
                 {entry.name}
               </p>
-              <p className="mt-1 text-xs text-[#9ca3af]">
-                {entry.badges} badges · {entry.xp} XP
+              <p
+                className={`mt-2 text-2xl font-black ${METRIC_ACCENT[metric]}`}
+              >
+                {entry[metric]}
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af]">
+                {metricUnit(metric, entry[metric])}
+              </p>
+              <p className="mt-2 text-xs text-[#9ca3af]">
+                {secondaryStats(entry, metric)}
               </p>
             </article>
           );

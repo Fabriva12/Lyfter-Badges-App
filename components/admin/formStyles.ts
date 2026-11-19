@@ -11,4 +11,4 @@ export const secondaryButtonClassName =
   "rounded-lg border border-[#394351] px-6 py-3 text-sm font-semibold text-[#d7dce3] transition hover:bg-[#272d36] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const cardClassName =
-  "rounded-xl border border-[#39424f] bg-[#252c35] p-7 shadow-2xl shadow-black/30";
+  "rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-7";

@@ -2,15 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma, type Role } from "@/app/generated/prisma/client";
 import { logAudit } from "@/lib/admin/audit";
 import type { AdminFormState } from "@/lib/admin/forms";
 import { reconcileAdminRole } from "@/lib/admin/roles";
 import { requireSuperAdmin } from "@/lib/admin/guards";
 import { slugify, withSuffix } from "@/lib/admin/slug";
+import { parseUserRole } from "@/lib/admin/validation";
 import { prisma } from "@/lib/db";
+import { ROLE_LABELS } from "@/lib/format";
 
-const UNEXPECTED_ERROR = "Something went wrong. Please try again.";
+const UNEXPECTED_ERROR = "Algo salió mal. Intenta de nuevo.";
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -32,7 +34,10 @@ export async function createCompany(
   const description = text(formData, "description") || null;
 
   if (name.length < 2) {
-    return { status: "error", message: "The company name is too short." };
+    return {
+      status: "error",
+      message: "El nombre de la empresa es demasiado corto.",
+    };
   }
 
   const baseSlug = slugify(name);
@@ -63,7 +68,7 @@ export async function createCompany(
   if (!company) {
     return {
       status: "error",
-      message: "Could not build a unique URL for this company.",
+      message: "No se pudo generar una URL única para esta empresa.",
     };
   }
 
@@ -76,12 +81,15 @@ export async function createCompany(
     action: "company.created",
     entityType: "company",
     entityId: company.id,
-    summary: `Created the company “${company.name}”.`,
+    summary: `Se creó la empresa «${company.name}».`,
   });
 
   revalidatePath("/super-admin");
 
-  return { status: "success", message: `Company “${company.name}” created.` };
+  return {
+    status: "success",
+    message: `Se creó la empresa «${company.name}».`,
+  };
 }
 
 export async function addCompanyAdmin(
@@ -93,7 +101,7 @@ export async function addCompanyAdmin(
   const email = text(formData, "email").toLowerCase();
 
   if (!email) {
-    return { status: "error", message: "Enter the account email." };
+    return { status: "error", message: "Ingresa el email de la cuenta." };
   }
 
   const [company, user] = await Promise.all([
@@ -108,13 +116,14 @@ export async function addCompanyAdmin(
   ]);
 
   if (!company) {
-    return { status: "error", message: "That company no longer exists." };
+    return { status: "error", message: "Esa empresa ya no existe." };
   }
 
   if (!user) {
     return {
       status: "error",
-      message: "No account uses that email. The user must sign up first.",
+      message:
+        "Ninguna cuenta usa ese email. La persona debe registrarse primero.",
     };
   }
 
@@ -128,7 +137,7 @@ export async function addCompanyAdmin(
   if (existing) {
     return {
       status: "error",
-      message: `${user.name} already administers ${company.name}.`,
+      message: `${user.name} ya administra ${company.name}.`,
     };
   }
 
@@ -153,7 +162,7 @@ export async function addCompanyAdmin(
       action: "company.admin_added",
       entityType: "companyMember",
       entityId: user.id,
-      summary: `Added ${user.name} as an admin of ${company.name}.`,
+      summary: `Se agregó a ${user.name} como admin de ${company.name}.`,
     });
   } catch (error) {
     console.error(error);
@@ -164,7 +173,7 @@ export async function addCompanyAdmin(
 
   return {
     status: "success",
-    message: `${user.name} now administers ${company.name}.`,
+    message: `${user.name} ahora administra ${company.name}.`,
   };
 }
 
@@ -192,7 +201,10 @@ export async function removeCompanyAdmin(
   ]);
 
   if (!company || !user || !membership) {
-    return { status: "error", message: "That membership no longer exists." };
+    return {
+      status: "error",
+      message: "Esa membresía ya no existe.",
+    };
   }
 
   try {
@@ -208,7 +220,7 @@ export async function removeCompanyAdmin(
       action: "company.admin_removed",
       entityType: "companyMember",
       entityId: user.id,
-      summary: `Removed ${user.name} as an admin of ${company.name}.`,
+      summary: `Se quitó a ${user.name} como admin de ${company.name}.`,
     });
   } catch (error) {
     console.error(error);
@@ -219,6 +231,100 @@ export async function removeCompanyAdmin(
 
   return {
     status: "success",
-    message: `${user.name} no longer administers ${company.name}.`,
+    message: `${user.name} ya no administra ${company.name}.`,
+  };
+}
+
+export async function updateUserRole(
+  _prevState: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  const session = await requireSuperAdmin();
+  const userId = text(formData, "userId");
+  const parsed = parseUserRole(formData.get("role"));
+
+  if (!parsed.ok) {
+    return { status: "error", message: parsed.error };
+  }
+
+  const role = parsed.value;
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, role: true },
+  });
+
+  if (!target) {
+    return { status: "error", message: "Esa cuenta ya no existe." };
+  }
+
+  if (target.id === session.user.id) {
+    return {
+      status: "error",
+      message: "No puedes cambiar tu propio rol desde aquí.",
+    };
+  }
+
+  if (target.role === role) {
+    return {
+      status: "error",
+      message: `${target.name} ya tiene el rol ${ROLE_LABELS[role] ?? role}.`,
+    };
+  }
+
+  if (target.role === "SUPER_ADMIN" && role !== "SUPER_ADMIN") {
+    const superAdmins = await prisma.user.count({
+      where: { role: "SUPER_ADMIN" },
+    });
+
+    if (superAdmins <= 1) {
+      return {
+        status: "error",
+        message: "No puedes quitar el rol al último super admin.",
+      };
+    }
+  }
+
+  if (role === "ATTENDEE") {
+    const [memberships, stands] = await Promise.all([
+      prisma.companyMember.count({ where: { userId: target.id } }),
+      prisma.eventBadge.count({ where: { partnerId: target.id } }),
+    ]);
+
+    if (memberships > 0 || stands > 0) {
+      return {
+        status: "error",
+        message: `Primero quita las asignaciones de empresa y stands de ${target.name}.`,
+      };
+    }
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: target.id },
+      data: { role: role as Role },
+    });
+
+    await logAudit({
+      eventId: null,
+      eventName: null,
+      actor: session.user,
+      action: "user.role_changed",
+      entityType: "user",
+      entityId: target.id,
+      summary: `Se cambió el rol de ${target.name} de ${ROLE_LABELS[target.role] ?? target.role} a ${ROLE_LABELS[role] ?? role}.`,
+      metadata: { from: target.role, to: role },
+    });
+  } catch (error) {
+    console.error(error);
+    return { status: "error", message: UNEXPECTED_ERROR };
+  }
+
+  revalidatePath("/super-admin");
+  revalidatePath("/super-admin/users");
+
+  return {
+    status: "success",
+    message: `${target.name} ahora es ${ROLE_LABELS[role] ?? role}.`,
   };
 }

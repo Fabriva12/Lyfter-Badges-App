@@ -1,10 +1,7 @@
 import Link from "next/link";
 
-import {
-  EVENT_MODE_LABELS,
-  EVENT_STATUS_LABELS,
-  formatEventDate,
-} from "@/lib/format";
+import { formatEventRange } from "@/lib/date";
+import { EVENT_MODE_LABELS, EVENT_STATUS_LABELS } from "@/lib/format";
 import type { EventSummary } from "@/lib/gamification/queries";
 
 interface EventCardProps {
@@ -13,11 +10,11 @@ interface EventCardProps {
 
 export default function EventCard({ event }: EventCardProps) {
   return (
-    <article className="flex flex-col rounded-xl border border-[#39424f] bg-[#252c35] p-7">
+    <article className="flex flex-col rounded-xl border border-[#39424f] bg-[#252c35] p-5 sm:p-7">
       <div className="flex-1">
         <h2 className="text-lg font-bold text-[#f1f1ed]">{event.name}</h2>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          {formatEventDate(event.startsAt, event.endsAt)}
+          {formatEventRange(event.startsAt, event.endsAt)}
         </p>
         {event.location ? (
           <p className="mt-1 text-sm text-[#9ca3af]">

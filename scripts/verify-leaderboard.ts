@@ -39,12 +39,30 @@ async function main() {
   }
 
   for (const event of events) {
-    const grouped = await prisma.scan.groupBy({
-      by: ["userId"],
-      where: { eventId: event.id },
-      _sum: { xpAwarded: true },
-      _count: { qrTokenId: true },
-    });
+    const [grouped, stands, talks] = await Promise.all([
+      prisma.scan.groupBy({
+        by: ["userId"],
+        where: { eventId: event.id },
+        _sum: { xpAwarded: true },
+        _count: { eventBadgeId: true },
+      }),
+      prisma.scan.groupBy({
+        by: ["userId"],
+        where: {
+          eventId: event.id,
+          eventBadge: { badge: { type: "STAND" } },
+        },
+        _count: { eventBadgeId: true },
+      }),
+      prisma.scan.groupBy({
+        by: ["userId"],
+        where: {
+          eventId: event.id,
+          eventBadge: { badge: { type: "TALK" } },
+        },
+        _count: { eventBadgeId: true },
+      }),
+    ]);
 
     const users = await prisma.user.findMany({
       where: { id: { in: grouped.map((group) => group.userId) } },
@@ -52,6 +70,12 @@ async function main() {
     });
 
     const usersById = new Map(users.map((user) => [user.id, user]));
+    const standsByUser = new Map(
+      stands.map((group) => [group.userId, group._count.eventBadgeId]),
+    );
+    const talksByUser = new Map(
+      talks.map((group) => [group.userId, group._count.eventBadgeId]),
+    );
 
     const ranking = rankAttendees(
       grouped.map((group) => {
@@ -66,7 +90,9 @@ async function main() {
           name: user.name,
           image: user.image,
           xp: group._sum.xpAwarded ?? 0,
-          badges: group._count.qrTokenId,
+          badges: group._count.eventBadgeId,
+          stands: standsByUser.get(group.userId) ?? 0,
+          talks: talksByUser.get(group.userId) ?? 0,
         };
       }),
     );
@@ -75,7 +101,7 @@ async function main() {
 
     for (const row of ranking.rows) {
       console.log(
-        `    #${row.rank} (pos ${row.position}) ${row.name} | ${row.xp} XP | ${row.badges} badges`,
+        `    #${row.rank} (pos ${row.position}) ${row.name} | ${row.xp} XP | ${row.badges} badges | ${row.stands} stands | ${row.talks} talks`,
       );
     }
 

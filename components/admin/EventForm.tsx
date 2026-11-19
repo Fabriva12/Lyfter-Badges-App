@@ -10,11 +10,8 @@ import {
   primaryButtonClassName,
 } from "@/components/admin/formStyles";
 import { initialAdminFormState } from "@/lib/admin/forms";
-import {
-  EVENT_MODES,
-  EVENT_STATUSES,
-  toUtcInputValue,
-} from "@/lib/admin/validation";
+import { EVENT_MODES, EVENT_STATUSES } from "@/lib/admin/validation";
+import { toLocalInputValue } from "@/lib/date";
 import { EVENT_MODE_LABELS, EVENT_STATUS_LABELS } from "@/lib/format";
 
 interface EventFormProps {
@@ -40,10 +37,10 @@ export default function EventForm({ event }: EventFormProps) {
 
   return (
     <form action={formAction} className={cardClassName}>
-      <h2 className="text-lg font-bold text-[#f1f1ed]">Event details</h2>
+      <h2 className="text-lg font-bold text-[#f1f1ed]">Detalles del evento</h2>
       <p className="mt-1 text-sm text-[#9ca3af]">
-        The public URL is <code>{`/leaderboard?event=${event.slug}`}</code> and
-        it does not change with the name.
+        La URL pública es <code>{`/leaderboard?event=${event.slug}`}</code> y no
+        cambia con el nombre.
       </p>
 
       <input type="hidden" name="eventId" value={event.id} />
@@ -51,7 +48,7 @@ export default function EventForm({ event }: EventFormProps) {
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="event-name" className={labelClassName}>
-            Name
+            Nombre
           </label>
           <input
             id="event-name"
@@ -65,7 +62,7 @@ export default function EventForm({ event }: EventFormProps) {
 
         <div>
           <label htmlFor="event-location" className={labelClassName}>
-            Location
+            Ubicación
           </label>
           <input
             id="event-location"
@@ -78,21 +75,21 @@ export default function EventForm({ event }: EventFormProps) {
 
         <div>
           <label htmlFor="event-country" className={labelClassName}>
-            Country
+            País
           </label>
           <input
             id="event-country"
             name="country"
             maxLength={80}
             defaultValue={event.country ?? ""}
-            placeholder="Argentina"
+            placeholder="Costa Rica"
             className={inputClassName}
           />
         </div>
 
         <div>
           <label htmlFor="event-mode" className={labelClassName}>
-            Mode
+            Modalidad
           </label>
           <select
             id="event-mode"
@@ -110,7 +107,7 @@ export default function EventForm({ event }: EventFormProps) {
 
         <div>
           <label htmlFor="event-status" className={labelClassName}>
-            Status
+            Estado
           </label>
           <select
             id="event-status"
@@ -126,31 +123,31 @@ export default function EventForm({ event }: EventFormProps) {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="event-starts-at" className={labelClassName}>
-              Starts (UTC)
+              Inicio (hora Costa Rica)
             </label>
             <input
               id="event-starts-at"
               name="startsAt"
               type="datetime-local"
               required
-              defaultValue={toUtcInputValue(event.startsAt)}
+              defaultValue={toLocalInputValue(event.startsAt)}
               className={inputClassName}
             />
           </div>
 
           <div>
             <label htmlFor="event-ends-at" className={labelClassName}>
-              Ends (UTC)
+              Fin (hora Costa Rica)
             </label>
             <input
               id="event-ends-at"
               name="endsAt"
               type="datetime-local"
               required
-              defaultValue={toUtcInputValue(event.endsAt)}
+              defaultValue={toLocalInputValue(event.endsAt)}
               className={inputClassName}
             />
           </div>
@@ -158,7 +155,7 @@ export default function EventForm({ event }: EventFormProps) {
 
         <div className="sm:col-span-2">
           <label htmlFor="event-description" className={labelClassName}>
-            Description
+            Descripción
           </label>
           <textarea
             id="event-description"
@@ -185,7 +182,7 @@ export default function EventForm({ event }: EventFormProps) {
         disabled={isPending}
         className={`mt-5 ${primaryButtonClassName}`}
       >
-        {isPending ? "Saving…" : "Save changes"}
+        {isPending ? "Guardando…" : "Guardar cambios"}
       </button>
     </form>
   );

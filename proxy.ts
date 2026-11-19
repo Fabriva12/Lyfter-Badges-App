@@ -6,6 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // validates the real session on the server.
 const PROTECTED_PREFIXES = [
   "/s",
+  "/scan",
   "/collection",
   "/leaderboard",
   "/admin",

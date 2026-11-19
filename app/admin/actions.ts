@@ -12,7 +12,7 @@ import { parseEventInput } from "@/lib/admin/validation";
 import { configTag, eventsTag } from "@/lib/gamification/queries";
 import { requireRole } from "@/lib/session";
 
-const UNEXPECTED_ERROR = "Something went wrong. Please try again.";
+const UNEXPECTED_ERROR = "Ocurrió un error. Inténtalo de nuevo.";
 
 function isUniqueViolation(error: unknown) {
   return (
@@ -39,7 +39,7 @@ export async function createEvent(
   if (!membership) {
     return {
       status: "error",
-      message: "Choose a company you administer.",
+      message: "Elige una empresa que administres.",
     };
   }
 
@@ -93,7 +93,7 @@ export async function createEvent(
   if (!eventId) {
     return {
       status: "error",
-      message: "Could not build a unique URL for this event. Try another name.",
+      message: "No se pudo generar una URL única para este evento. Prueba con otro nombre.",
     };
   }
 
@@ -106,7 +106,7 @@ export async function createEvent(
     action: "event.created",
     entityType: "event",
     entityId: eventId,
-    summary: `Created the event “${parsed.value.name}”.`,
+    summary: `Creaste el evento “${parsed.value.name}”.`,
     metadata: { mode: parsed.value.mode, status: parsed.value.status },
   });
 

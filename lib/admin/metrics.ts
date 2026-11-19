@@ -1,17 +1,17 @@
-// Pure metric helpers. No Prisma import: the data-access layer shapes the rows
-// and these functions own the math, so they are testable with plain values.
+import { hourInEventZone } from "../date";
+
 
 export interface HourBucket {
   hour: number;
   count: number;
 }
 
-/** Counts scans per UTC hour of the day (24 buckets, including empty ones). */
+/** Counts scans per Costa Rica hour of the day (24 buckets, including empty ones). */
 export function bucketScansByHour(dates: Date[]): HourBucket[] {
   const counts = new Array<number>(24).fill(0);
 
   for (const date of dates) {
-    const hour = date.getUTCHours();
+    const hour = hourInEventZone(date);
 
     if (hour >= 0 && hour < 24) {
       counts[hour] += 1;
@@ -46,4 +46,18 @@ export function barWidth(count: number, max: number): number {
   }
 
   return Math.round((count / max) * 100);
+}
+
+/**
+ * Returns the `limit` highest-scoring items, highest first, without mutating
+ * the input. Ties keep the original relative order (stable enough for ranking).
+ */
+export function topN<T>(
+  items: T[],
+  limit: number,
+  score: (item: T) => number,
+): T[] {
+  return [...items]
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, Math.max(limit, 0));
 }

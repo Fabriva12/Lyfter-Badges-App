@@ -3,8 +3,8 @@
 Aplicación de gamificación para eventos de Lyfter. Los asistentes escanean un QR de
 bienvenida, se registran y después escanean el QR de cada charla o stand. Cada escaneo
 otorga un badge y XP: la XP acumulada define el **nivel global** del asistente, mientras
-que el ranking se calcula **por evento**. Al completar todos los badges de un evento se
-desbloquea el premio.
+que el ranking puede ser **global o por evento** y ordenarse por XP, stands o charlas. Al
+completar todos los badges de un evento se desbloquea el premio.
 
 Detrás hay un panel de administración para el equipo de Lyfter (`ADMIN`) y para las
 empresas con stand (también `ADMIN`, acotado a su stand), más un panel global para el
@@ -40,6 +40,7 @@ Variables en `.env`:
 | `SHADOW_DATABASE_URL` | Base `lyfter_shadow` para `migrate dev` |
 | `BETTER_AUTH_SECRET` | Secreto de Better Auth |
 | `BETTER_AUTH_URL` | URL base de la app (por ejemplo `http://localhost:3000`) |
+| `SEED_DEMO_DATA` | Habilita los datos de demo en el seed (`false` por defecto en `.env.example`) |
 
 Las URLs de conexión viven en `prisma7.config.ts` (Prisma 7.10 no genera
 `prisma.config.ts`). Si el proyecto de Supabase está pausado, despertalo desde el panel
@@ -49,6 +50,7 @@ antes de correr migraciones o el seed.
 
 ```bash
 pnpm install
+pnpm prisma generate
 pnpm prisma migrate deploy
 pnpm dev
 ```
@@ -64,7 +66,8 @@ La app queda en [http://localhost:3000](http://localhost:3000).
 ## Datos de demo
 
 El seed siempre crea los niveles (`Level`). El resto del contenido de demo está detrás de
-`SEED_DEMO_DATA=true`, que **no** viene configurado por defecto en `.env`.
+`SEED_DEMO_DATA=true`, que en `.env.example` figura como `false` (hay que ponerlo en `true`
+al correr el seed).
 
 PowerShell:
 
@@ -78,8 +81,14 @@ Bash:
 SEED_DEMO_DATA=true pnpm prisma db seed
 ```
 
-El seed es idempotente: crea/actualiza los eventos **Lyfter Demo 2026** y
-**Lyfter Meetup 2026**, sus badges, tokens QR, premios y asistentes con distinto XP.
+El seed es idempotente: crea/actualiza los eventos **Lyfter Demo Costa Rica 2026** y
+**Lyfter Meetup Costa Rica 2026**, sus badges, tokens QR, premios y asistentes con distinto XP.
+Las fechas se guardan en UTC y se muestran en hora Costa Rica (UTC−6).
+
+| Evento | Sede | Fecha (hora Costa Rica) |
+| --- | --- | --- |
+| Lyfter Demo Costa Rica 2026 | San José | 20 nov 2026, 10:00–16:00 |
+| Lyfter Meetup Costa Rica 2026 | Escazú | 4 dic 2026, 11:00–17:00 |
 
 ## Usuarios de test
 
@@ -116,18 +125,19 @@ por defecto es `ATTENDEE`; los roles `ADMIN` y `SUPER_ADMIN` se asignan por base
 ## QRs de demo
 
 Cada token se puede abrir directamente en el navegador con `/s/<token>`. Si no hay sesión,
-la app redirige a `/login` y conserva el destino original.
+la app redirige a `/login` y conserva el destino original. También podés escanear con la
+cámara o subir una foto del QR desde `/scan`; la cámara requiere HTTPS o localhost.
 
 | Evento | Token | URL | Tipo |
 | --- | --- | --- | --- |
-| Lyfter Demo 2026 | `demo-welcome` | `/s/demo-welcome` | Bienvenida (registro) |
-| Lyfter Demo 2026 | `demo-keynote` | `/s/demo-keynote` | Badge — Opening Keynote (50 XP) |
-| Lyfter Demo 2026 | `demo-rsc` | `/s/demo-rsc` | Badge — React Server Components (60 XP) |
-| Lyfter Demo 2026 | `demo-supabase` | `/s/demo-supabase` | Badge — Supabase Stand (40 XP) |
-| Lyfter Demo 2026 | `demo-auth` | `/s/demo-auth` | Badge — Better Auth Workshop (70 XP) |
-| Lyfter Meetup 2026 | `demo-meetup-welcome` | `/s/demo-meetup-welcome` | Bienvenida (registro) |
-| Lyfter Meetup 2026 | `demo-meetup-checkin` | `/s/demo-meetup-checkin` | Badge — Meetup Check-in (20 XP) |
-| Lyfter Meetup 2026 | `demo-meetup-talks` | `/s/demo-meetup-talks` | Badge — Meetup Lightning Talks (30 XP) |
+| Lyfter Demo Costa Rica 2026 | `demo-welcome` | `/s/demo-welcome` | Bienvenida (registro) |
+| Lyfter Demo Costa Rica 2026 | `demo-keynote` | `/s/demo-keynote` | Insignia — Charla inaugural (50 XP) |
+| Lyfter Demo Costa Rica 2026 | `demo-rsc` | `/s/demo-rsc` | Insignia — React Server Components (60 XP) |
+| Lyfter Demo Costa Rica 2026 | `demo-supabase` | `/s/demo-supabase` | Insignia — Stand de Supabase (40 XP) |
+| Lyfter Demo Costa Rica 2026 | `demo-auth` | `/s/demo-auth` | Insignia — Taller de Better Auth (70 XP) |
+| Lyfter Meetup Costa Rica 2026 | `demo-meetup-welcome` | `/s/demo-meetup-welcome` | Bienvenida (registro) |
+| Lyfter Meetup Costa Rica 2026 | `demo-meetup-checkin` | `/s/demo-meetup-checkin` | Insignia — Registro del meetup (20 XP) |
+| Lyfter Meetup Costa Rica 2026 | `demo-meetup-talks` | `/s/demo-meetup-talks` | Insignia — Charlas relámpago (30 XP) |
 
 Los escaneos son idempotentes: repetir el mismo QR no vuelve a otorgar XP.
 
@@ -137,14 +147,29 @@ Los escaneos son idempotentes: repetir el mismo QR no vuelve a otorgar XP.
 | --- | --- | --- |
 | `/` | Landing pública | Público |
 | `/login` | Inicio de sesión y registro | Público |
+| `/events` | Catálogo público de eventos | Público |
 | `/s/[token]` | Landing del QR: registra el escaneo o reclama el badge | Requiere sesión |
+| `/scan` | Escáner de QR con cámara o imagen | Requiere sesión |
 | `/collection` | Colección, XP global y nivel | Requiere sesión |
-| `/leaderboard` | Ranking por evento | Requiere sesión |
+| `/leaderboard` | Ranking global o por evento, por XP/stands/talks | Requiere sesión |
+| `/share/[token]` | Colección compartida e imagen OG | Público |
 | `/badge/[eventBadgeId]` | Página pública del badge e imagen OG | Público |
-| `/admin` | Panel según rol | `ADMIN` |
-| `/admin/events/[id]` | Detalle del evento (badges, premio, escaneos) | `ADMIN` de la empresa dueña |
-| `/admin/stands/[eventBadgeId]` | Vista de solo lectura del stand | `ADMIN` asignado al stand |
+| `/admin` | Panel según rol | `ADMIN` / `SUPER_ADMIN` |
+| `/admin/audit` | Auditoría del panel | `ADMIN` / `SUPER_ADMIN` |
+| `/admin/events/[id]` | Detalle del evento (badges, premio, escaneos) | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/badges` | Insignias y QR del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/prize` | Premio del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/attendees` | Participantes del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/scans` | Escaneos del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/metrics` | Métricas del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/events/[id]/audit` | Auditoría del evento | `ADMIN` de la empresa dueña / `SUPER_ADMIN` |
+| `/admin/stands/[eventBadgeId]` | Vista de solo lectura del stand | `ADMIN` asignado al stand / `SUPER_ADMIN` |
 | `/super-admin` | Panel global: empresas, eventos y administradores | `SUPER_ADMIN` |
+| `/super-admin/companies` | Empresas y administradores | `SUPER_ADMIN` |
+| `/super-admin/events` | Eventos de todas las empresas | `SUPER_ADMIN` |
+| `/super-admin/users` | Usuarios y roles | `SUPER_ADMIN` |
+| `/super-admin/metrics` | Métricas de la plataforma | `SUPER_ADMIN` |
+| `/super-admin/audit` | Auditoría global | `SUPER_ADMIN` |
 
 Un objeto que no pertenece al usuario responde `404` a propósito, para no filtrar la
 existencia de ids ajenos.
@@ -159,6 +184,11 @@ existencia de ids ajenos.
 | `pnpm lint` | ESLint |
 | `pnpm test` | Tests con Vitest |
 | `pnpm test:watch` | Vitest en modo watch |
+| `pnpm tsx scripts/migrate-costa-rica-times.ts` | Simula el corrimiento de +6 h en eventos de Costa Rica |
+| `pnpm tsx scripts/migrate-costa-rica-times.ts --apply` | Aplica el corrimiento de +6 h (no re-seeding después) |
+| `pnpm tsx scripts/verify-leaderboard.ts` | Verifica ranking, podium y conteos |
+| `pnpm tsx scripts/verify-collection.ts` | Verifica XP global vs. por evento |
+| `pnpm tsx scripts/verify-partner.ts` | Verifica roles y stands del partner de demo |
 
 ## Estructura
 
@@ -169,22 +199,28 @@ app/                  rutas (App Router)
   api/auth/[...all]/  handler de Better Auth
   badge/              página pública del badge + OG image
   collection/         colección, XP y nivel
-  leaderboard/        ranking por evento
+  events/             catálogo público de eventos
+  leaderboard/        ranking global o por evento
   login/              login y registro
   s/[token]/          landing de los QR
+  scan/               escáner de QR
+  share/[token]/      colección compartida + OG image
 components/           UI (landing, admin, collection, auth, share, scan)
 lib/
   auth.ts             instancia de Better Auth
+  date.ts             fecha/hora en America/Costa_Rica
   db.ts               PrismaClient singleton
   session.ts          helpers de sesión (requireSession / requireRole)
   gamification/       lógica pura de XP, niveles, colección y ranking
   admin/              permisos, guards, queries y validación del panel
+  scan/               resolver de targets de escaneo
+  share/              share tokens y URL
 prisma/
   schema.prisma       modelo de datos
   migrations/         migraciones
   seed.ts             datos de demo
 prisma7.config.ts     datasource + shadow DB + seed (nombre propio de Prisma 7.10)
-scripts/              scripts manuales de inspección y verificación
+scripts/              scripts manuales de inspección, migración y verificación
 ```
 
 ## Troubleshooting

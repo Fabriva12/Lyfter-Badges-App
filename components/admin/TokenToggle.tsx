@@ -33,7 +33,7 @@ export default function TokenToggle({
         disabled={isPending}
         className={`${secondaryButtonClassName} px-3 py-2 text-xs`}
       >
-        {isPending ? "Saving…" : active ? "Deactivate" : "Reactivate"}
+        {isPending ? "Guardando…" : active ? "Desactivar" : "Reactivar"}
       </button>
 
       {state.status === "error" ? (

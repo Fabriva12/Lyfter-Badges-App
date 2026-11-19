@@ -26,15 +26,16 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
   return (
     <form action={formAction} className={cardClassName}>
-      <h2 className="text-lg font-bold text-[#f1f1ed]">Create an event</h2>
+      <h2 className="text-lg font-bold text-[#f1f1ed]">Crear un evento</h2>
       <p className="mt-1 text-sm text-[#9ca3af]">
-        The event URL is generated from the name and cannot be changed later.
+        La URL del evento se genera a partir del nombre y no se puede cambiar
+        después.
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="new-company" className={labelClassName}>
-            Company
+            Empresa
           </label>
           <select
             id="new-company"
@@ -53,7 +54,7 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
         <div className="sm:col-span-2">
           <label htmlFor="new-name" className={labelClassName}>
-            Name
+            Nombre
           </label>
           <input
             id="new-name"
@@ -67,33 +68,33 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
         <div>
           <label htmlFor="new-location" className={labelClassName}>
-            Location
+            Ubicación
           </label>
           <input
             id="new-location"
             name="location"
             maxLength={120}
-            placeholder="Buenos Aires"
+            placeholder="San José"
             className={inputClassName}
           />
         </div>
 
         <div>
           <label htmlFor="new-country" className={labelClassName}>
-            Country
+            País
           </label>
           <input
             id="new-country"
             name="country"
             maxLength={80}
-            placeholder="Argentina"
+            placeholder="Costa Rica"
             className={inputClassName}
           />
         </div>
 
         <div>
           <label htmlFor="new-mode" className={labelClassName}>
-            Mode
+            Modalidad
           </label>
           <select
             id="new-mode"
@@ -111,7 +112,7 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
         <div>
           <label htmlFor="new-status" className={labelClassName}>
-            Status
+            Estado
           </label>
           <select
             id="new-status"
@@ -127,10 +128,10 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="new-starts-at" className={labelClassName}>
-              Starts (UTC)
+              Inicio (hora Costa Rica)
             </label>
             <input
               id="new-starts-at"
@@ -143,7 +144,7 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
           <div>
             <label htmlFor="new-ends-at" className={labelClassName}>
-              Ends (UTC)
+              Fin (hora Costa Rica)
             </label>
             <input
               id="new-ends-at"
@@ -157,7 +158,7 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
 
         <div className="sm:col-span-2">
           <label htmlFor="new-description" className={labelClassName}>
-            Description
+            Descripción
           </label>
           <textarea
             id="new-description"
@@ -183,7 +184,7 @@ export default function CreateEventForm({ companies }: CreateEventFormProps) {
         disabled={isPending}
         className={`mt-5 ${primaryButtonClassName}`}
       >
-        {isPending ? "Creating…" : "Create event"}
+        {isPending ? "Creando…" : "Crear evento"}
       </button>
     </form>
   );

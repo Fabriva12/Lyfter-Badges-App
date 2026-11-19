@@ -11,7 +11,7 @@ interface CopyButtonProps {
 
 export default function CopyButton({
   value,
-  label = "Copy link",
+  label = "Copiar enlace",
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
@@ -31,7 +31,7 @@ export default function CopyButton({
       onClick={handleCopy}
       className={`${secondaryButtonClassName} px-3 py-2 text-xs`}
     >
-      {copied ? "Copied" : label}
+      {copied ? "Copiado" : label}
     </button>
   );
 }

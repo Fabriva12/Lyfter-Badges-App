@@ -29,10 +29,10 @@ export default async function TokenCard({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qr}
-          alt={`QR code for ${label}`}
+          alt={`Código QR de ${label}`}
           width={120}
           height={120}
-          className="h-[120px] w-[120px] shrink-0 rounded bg-white p-1"
+          className="h-24 w-24 shrink-0 rounded bg-white p-1 sm:h-[120px] sm:w-[120px]"
         />
 
         <div className="min-w-0 flex-1 space-y-2">
@@ -44,14 +44,14 @@ export default async function TokenCard({
                   : "bg-[#f47f8a]/15 text-[#ffb3ba]"
               }`}
             >
-              {token.active ? "Active" : "Inactive"}
+              {token.active ? "Activo" : "Inactivo"}
             </span>
 
             <span className="text-xs text-[#9ca3af]">
-              {token.scans} {token.scans === 1 ? "scan" : "scans"} ·{" "}
+              {token.scans} {token.scans === 1 ? "escaneo" : "escaneos"} ·{" "}
               {token.maxScans === null
-                ? "unlimited"
-                : `limit ${token.maxScans}`}
+                ? "sin límite"
+                : `límite ${token.maxScans}`}
             </span>
           </div>
 

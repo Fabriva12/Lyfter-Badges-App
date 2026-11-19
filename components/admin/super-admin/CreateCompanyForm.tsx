@@ -19,15 +19,15 @@ export default function CreateCompanyForm() {
 
   return (
     <form action={formAction} className={cardClassName}>
-      <h2 className="text-lg font-bold text-[#f1f1ed]">Create a company</h2>
+      <h2 className="text-lg font-bold text-[#f1f1ed]">Crear una empresa</h2>
       <p className="mt-1 text-sm text-[#9ca3af]">
-        Companies group events and the admins that manage them.
+        Las empresas agrupan eventos y los admins que los gestionan.
       </p>
 
       <div className="mt-5 space-y-4">
         <div>
           <label htmlFor="company-name" className={labelClassName}>
-            Name
+            Nombre
           </label>
           <input
             id="company-name"
@@ -36,20 +36,20 @@ export default function CreateCompanyForm() {
             minLength={2}
             maxLength={120}
             className={inputClassName}
-            placeholder="Acme Events"
+            placeholder="Acme Eventos"
           />
         </div>
 
         <div>
           <label htmlFor="company-description" className={labelClassName}>
-            Description (optional)
+            Descripción (opcional)
           </label>
           <input
             id="company-description"
             name="description"
             maxLength={280}
             className={inputClassName}
-            placeholder="What this company organizes"
+            placeholder="Qué organiza esta empresa"
           />
         </div>
       </div>
@@ -70,7 +70,7 @@ export default function CreateCompanyForm() {
         disabled={isPending}
         className={`${primaryButtonClassName} mt-5`}
       >
-        {isPending ? "Creating…" : "Create company"}
+        {isPending ? "Creando…" : "Crear empresa"}
       </button>
     </form>
   );

@@ -5,8 +5,8 @@ Status: **in progress** — Supabase connected (session pooler + `lyfter_shadow`
 Phase 1 complete (`/login` with Server Actions and validated `next`). Phase 2 complete
 (`/s/[token]` check-in + badge claim, idempotent, demo seed behind `SEED_DEMO_DATA`). Phase 3 complete
 (`/collection` with global XP, level progression, per-event collection and prize status). Phase 4
-complete (`/leaderboard` with the per-event ranking: podium, top 10, and a competition rank that is
-not the same as the position in the list). Phase 5 complete (public `/badge/[eventBadgeId]` page with
+complete (`/leaderboard` with global and per-event scope: podium, top 10, and a competition
+rank that is not the same as the position in the list, ordered by XP, stands or talks). Phase 5 complete (public `/badge/[eventBadgeId]` page with
 dynamic OG image through `ImageResponse`, share intents for X, WhatsApp and Facebook, and a copy-link
 button). The share URL is keyed by `eventBadgeId`, never by the QR token, so sharing does not leak the
 scan secret. Phase 6 complete (the event prize stays a secret until the attendee completes the
@@ -34,20 +34,27 @@ Two distinct axes over the same `Scan` table. Mixing them up is the main design 
 | Axis | Scope | Purpose |
 | --- | --- | --- |
 | Level | **Global** — `SUM(Scan.xpAwarded)` across all events | Retention: attendees return to the next event already at level 5 |
-| Leaderboard | **Per event** — `SUM(Scan.xpAwarded) WHERE eventId = ?` | Fair competition within a single day |
+| Leaderboard | **Global or per event** — XP, stand visits or talk attendance | Fair competition within a single day, plus the platform-wide race |
 
 A global level is what makes the attendee come back. A per-event leaderboard is what keeps
-the event from being a formality for veterans.
+the event from being a formality for veterans. The leaderboard can also be read globally,
+and each scope can be sorted by `xp`, `stands` or `talks`.
 
 ### Aggregates
 
-Three different questions, three different cuts of the same table:
+More than three questions, three different cuts of the same table:
 
 ```
 level        SUM(Scan.xpAwarded)
-leaderboard  SUM(Scan.xpAwarded)  WHERE eventId = X
+leaderboard  SUM(Scan.xpAwarded)                  metric xp
+             COUNT(*) WHERE Badge.type = STAND    metric stands
+             COUNT(*) WHERE Badge.type = TALK     metric talks
 collection   COUNT(DISTINCT Scan.qrTokenId)  WHERE eventId = X
 ```
+
+The leaderboard scope is either global (no `eventId`) or one event (`WHERE eventId = X`).
+`WELCOME` and `SPECIAL` badges add XP and collection count, but they are not a stand
+visit or a talk attendance.
 
 `Prize.requiredBadgesCount` is always compared against the collection count **within the
 same event**. A prize belongs to one event.
@@ -132,11 +139,13 @@ Both must be database constraints, not application checks. Application-level che
 
 ## 5. QR mechanism
 
-Deep link, not an in-app camera scanner: `/s/[token]`.
+Primary path: the in-app scanner at `/scan` (camera plus image upload). Fallback: the deep link
+`/s/[token]`.
 
-The QR is printed and stuck on a talk wall or stand. If the attendee has to open the app and
-paste a URL by hand, the gamification dies on contact. The native camera app opens the link,
-the browser loads it, the badge is awarded. No camera permission, no install required.
+The QR is printed and stuck on a talk wall or stand. The native camera app can still open the
+deep link, but the in-app scanner removes the hand-off: the attendee stays signed in, and the
+welcome check-in gate is resolved before the claim page loads. Camera access requires a secure
+context (HTTPS or localhost), so the deep link remains the universal fallback.
 
 ### Scan flow with auth gate
 
@@ -164,7 +173,8 @@ app/
   (marketing)/        landing + public event pages
   (attendee)/         collection, XP, level, leaderboard
   (admin)/            events, badges, QR tokens, scans
-  s/[token]/          QR landing
+  scan/               in-app QR scanner (camera + image upload)
+  s/[token]/          QR landing and claim
   login/
   api/auth/[...all]/  Better Auth handler
 lib/
@@ -206,7 +216,7 @@ existing one.
 | 1 | `/login` with cookie session, validated `next` | Server Actions, forms, validation |
 | 2 | `/s/[token]` — records, renders badge + XP | `updateTag()`, business-rule errors |
 | 3 | Collection + global XP + level | Aggregates, pure testable functions |
-| 4 | Per-event leaderboard | Ranking, the `WHERE eventId` filter |
+| 4 | Global and per-event leaderboard by XP, stands or talks | Ranking, scope filters, cache keys |
 | 5 | Social sharing + dynamic OG image | `ImageResponse`, dynamic metadata |
 | 6 | Prize revealed on set completion | State feedback |
 | 7 | Admin panel (organizer + partner) | Roles, per-role authorization |
@@ -289,5 +299,7 @@ existing one.
 - Admin queries must not use `unstable_cache`: a dashboard has to show the scan that just happened.
   Public read models keep their tags, and any admin mutation that changes what attendees see calls
   `revalidateTag(configTag(), "max")` (badge count, prize state).
-- `datetime-local` has no timezone. The admin form treats its value as UTC (`parseUtcDateTime` and
-  `toUtcInputValue`) to match the public pages, which format with `timeZone: "UTC"`.
+- `datetime-local` has no timezone. The whole app uses `America/Costa_Rica` (UTC−6, no DST):
+  `parseLocalDateTime` and `toLocalInputValue` in `lib/date.ts` own the form round-trip, and every
+  date is displayed with `es-CR` and a 24-hour clock. Existing events located in Costa Rica were
+  shifted +6 h once with `scripts/migrate-costa-rica-times.ts` so their configured wall time stays.

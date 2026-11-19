@@ -3,13 +3,13 @@ import Link from "next/link";
 
 import EventTabs from "@/components/admin/EventTabs";
 import { cardClassName } from "@/components/admin/formStyles";
-import { formatUtcDateTime } from "@/lib/admin/format";
+import { formatDateTime } from "@/lib/admin/format";
 import { requireEventForAdmin } from "@/lib/admin/guards";
 import { getEventAuditLogs } from "@/lib/admin/queries";
 import { auditActionLabel } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Audit · Admin · Lyfter Badges",
+  title: "Auditoría · Admin · Lyfter Badges",
 };
 
 interface AuditPageProps {
@@ -19,7 +19,7 @@ interface AuditPageProps {
 const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: "Super admin",
   ADMIN: "Admin",
-  ATTENDEE: "Attendee",
+  ATTENDEE: "Asistente",
 };
 
 export default async function AdminAuditPage({ params }: AuditPageProps) {
@@ -37,10 +37,11 @@ export default async function AdminAuditPage({ params }: AuditPageProps) {
         >
           ← {event.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold">Audit</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Auditoría</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          Every administrative action on this event, newest first. Times are
-          UTC. The last 200 entries are shown.
+          Todas las acciones administrativas en este evento, de la más reciente a
+          la más antigua. Las horas se muestran en la hora local de Costa Rica.
+          Se muestran las últimas 200 entradas.
         </p>
       </div>
 
@@ -49,31 +50,31 @@ export default async function AdminAuditPage({ params }: AuditPageProps) {
       <section className={cardClassName}>
         {rows.length === 0 ? (
           <p className="rounded-lg border border-[#39424f] bg-[#1f252d] px-4 py-8 text-center text-sm text-[#9ca3af]">
-            No administrative actions recorded for this event yet.
+            Todavía no hay acciones administrativas registradas para este evento.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-widest text-[#9ca3af]">
                 <tr>
-                  <th className="py-2 pr-4 font-semibold">When</th>
+                  <th className="py-2 pr-4 font-semibold">Cuándo</th>
                   <th className="py-2 pr-4 font-semibold">Actor</th>
-                  <th className="py-2 pr-4 font-semibold">Action</th>
-                  <th className="py-2 font-semibold">Details</th>
+                  <th className="py-2 pr-4 font-semibold">Acción</th>
+                  <th className="py-2 font-semibold">Detalles</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#303743]">
                 {rows.map((row) => (
                   <tr key={row.id}>
                     <td className="whitespace-nowrap py-3 pr-4 align-top text-[#9ca3af]">
-                      {formatUtcDateTime(row.createdAt)} UTC
+                      {formatDateTime(row.createdAt)}
                     </td>
                     <td className="py-3 pr-4 align-top text-[#f1f1ed]">
                       {row.actorName}
                       <span className="block text-xs text-[#6b7280]">
                         {row.actorRole
                           ? (ROLE_LABELS[row.actorRole] ?? row.actorRole)
-                          : "Unknown role"}
+                          : "Rol desconocido"}
                       </span>
                     </td>
                     <td className="py-3 pr-4 align-top">

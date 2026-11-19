@@ -34,7 +34,7 @@ export default function PartnerAssignForm({
       <input type="hidden" name="eventBadgeId" value={eventBadgeId} />
 
       <label htmlFor={`partner-${eventBadgeId}`} className={labelClassName}>
-        Stand partner
+        Socio del stand
       </label>
 
       <div className="flex flex-wrap gap-2">
@@ -44,7 +44,7 @@ export default function PartnerAssignForm({
           defaultValue={currentPartnerId ?? ""}
           className={`${inputClassName} max-w-xs`}
         >
-          <option value="">No partner</option>
+          <option value="">Sin socio</option>
           {partners.map((partner) => (
             <option key={partner.id} value={partner.id}>
               {partner.name} ({partner.email})
@@ -57,7 +57,7 @@ export default function PartnerAssignForm({
           disabled={isPending}
           className={`${secondaryButtonClassName} px-4 py-2 text-xs`}
         >
-          {isPending ? "Saving…" : "Save partner"}
+          {isPending ? "Guardando…" : "Guardar socio"}
         </button>
       </div>
 

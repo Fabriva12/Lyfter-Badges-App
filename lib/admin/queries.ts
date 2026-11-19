@@ -2,12 +2,13 @@
 // and must NOT be cached: `unstable_cache` would share one actor's payload with
 // every other actor. Only the public gamification queries are cached.
 
-import type { Prisma } from "@/app/generated/prisma/client";
+import type { Prisma, Role } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import {
   bucketScansByHour,
   type HourBucket,
 } from "./metrics";
+import { USER_ROLES, type UserRoleValue } from "./validation";
 
 export interface AdminCompany {
   id: string;
@@ -591,6 +592,9 @@ export interface AdminToken {
 
 export interface AdminBadge {
   id: string;
+  badgeId: string;
+  /** How many events share this global catalog entry. */
+  catalogUsage: number;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -634,6 +638,7 @@ export async function getEventBadgesAdmin(
     orderBy: { badge: { name: "asc" } },
     select: {
       id: true,
+      badgeId: true,
       room: true,
       startsAt: true,
       badge: {
@@ -645,6 +650,7 @@ export async function getEventBadgesAdmin(
           type: true,
           rarity: true,
           xpValue: true,
+          _count: { select: { eventBadges: true } },
         },
       },
       partner: { select: { id: true, name: true, email: true } },
@@ -667,6 +673,8 @@ export async function getEventBadgesAdmin(
 
     return {
       id: eventBadge.id,
+      badgeId: eventBadge.badgeId,
+      catalogUsage: eventBadge.badge._count.eventBadges,
       name: eventBadge.badge.name,
       description: eventBadge.badge.description,
       imageUrl: eventBadge.badge.imageUrl,
@@ -860,6 +868,424 @@ export async function getStandDetail(
       scannedAt: visit.scannedAt,
     })),
   } satisfies StandDetail;
+}
+
+// --- Platform-wide (super admin) -------------------------------------------
+
+export interface PlatformOverview {
+  users: number;
+  attendees: number;
+  admins: number;
+  superAdmins: number;
+  companies: number;
+  events: number;
+  activeEvents: number;
+  registrations: number;
+  scans: number;
+  xpAwarded: number;
+}
+
+/** Headline counters for the whole platform. */
+export async function getPlatformOverview(): Promise<PlatformOverview> {
+  const [
+    users,
+    attendees,
+    admins,
+    superAdmins,
+    companies,
+    events,
+    activeEvents,
+    registrations,
+    scans,
+    xp,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { role: "ATTENDEE" } }),
+    prisma.user.count({ where: { role: "ADMIN" } }),
+    prisma.user.count({ where: { role: "SUPER_ADMIN" } }),
+    prisma.company.count(),
+    prisma.event.count(),
+    prisma.event.count({ where: { status: "ACTIVE" } }),
+    prisma.registration.count(),
+    prisma.scan.count(),
+    prisma.scan.aggregate({ _sum: { xpAwarded: true } }),
+  ]);
+
+  return {
+    users,
+    attendees,
+    admins,
+    superAdmins,
+    companies,
+    events,
+    activeEvents,
+    registrations,
+    scans,
+    xpAwarded: xp._sum.xpAwarded ?? 0,
+  };
+}
+
+export interface PlatformBadgeVisit {
+  eventBadgeId: string;
+  name: string;
+  type: string;
+  rarity: string;
+  iconKey: string | null;
+  room: string | null;
+  eventId: string;
+  eventName: string;
+  eventSlug: string;
+  scans: number;
+}
+
+export interface PlatformEventParticipation {
+  id: string;
+  name: string;
+  slug: string;
+  companyName: string | null;
+  attendees: number;
+  scans: number;
+}
+
+export interface PlatformMetricsDetail {
+  totalScans: number;
+  totalRegistrations: number;
+  totalXpAwarded: number;
+  totalBadges: number;
+  hourly: HourBucket[];
+  topBadges: PlatformBadgeVisit[];
+  topTalks: PlatformBadgeVisit[];
+  topStands: PlatformBadgeVisit[];
+  topEvents: PlatformEventParticipation[];
+  byType: Record<string, number>;
+}
+
+/**
+ * Cross-event dashboard: top talks and stands, global hourly traffic and the
+ * events with the most participation. Grouping happens in the database; hour
+ * bucketing is the pure part in `metrics.ts`.
+ */
+export async function getPlatformMetricsDetail(): Promise<PlatformMetricsDetail> {
+  const [grouped, eventBadges, timestamps, registrations, scans, badges, xp, events] =
+    await Promise.all([
+      prisma.scan.groupBy({
+        by: ["eventBadgeId"],
+        _count: { _all: true },
+      }),
+      prisma.eventBadge.findMany({
+        select: {
+          id: true,
+          room: true,
+          badge: {
+            select: { name: true, type: true, rarity: true, iconKey: true },
+          },
+          event: { select: { id: true, name: true, slug: true } },
+        },
+      }),
+      prisma.scan.findMany({ select: { scannedAt: true } }),
+      prisma.registration.count(),
+      prisma.scan.count(),
+      prisma.eventBadge.count(),
+      prisma.scan.aggregate({ _sum: { xpAwarded: true } }),
+      prisma.event.findMany({
+        orderBy: { startsAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          company: { select: { name: true } },
+          _count: { select: { registrations: true, scans: true } },
+        },
+      }),
+    ]);
+
+  const scanCountByBadge = new Map(
+    grouped.map((group) => [group.eventBadgeId, group._count._all]),
+  );
+
+  const topBadges: PlatformBadgeVisit[] = eventBadges
+    .map((eventBadge) => ({
+      eventBadgeId: eventBadge.id,
+      name: eventBadge.badge.name,
+      type: eventBadge.badge.type,
+      rarity: eventBadge.badge.rarity,
+      iconKey: eventBadge.badge.iconKey,
+      room: eventBadge.room,
+      eventId: eventBadge.event.id,
+      eventName: eventBadge.event.name,
+      eventSlug: eventBadge.event.slug,
+      scans: scanCountByBadge.get(eventBadge.id) ?? 0,
+    }))
+    .sort((a, b) => b.scans - a.scans);
+
+  const byType: Record<string, number> = {};
+
+  for (const badge of topBadges) {
+    byType[badge.type] = (byType[badge.type] ?? 0) + badge.scans;
+  }
+
+  const topEvents: PlatformEventParticipation[] = events
+    .map((event) => ({
+      id: event.id,
+      name: event.name,
+      slug: event.slug,
+      companyName: event.company?.name ?? null,
+      attendees: event._count.registrations,
+      scans: event._count.scans,
+    }))
+    .sort((a, b) => b.attendees - a.attendees || b.scans - a.scans);
+
+  return {
+    totalScans: scans,
+    totalRegistrations: registrations,
+    totalXpAwarded: xp._sum.xpAwarded ?? 0,
+    totalBadges: badges,
+    hourly: bucketScansByHour(timestamps.map((row) => row.scannedAt)),
+    topBadges,
+    topTalks: topBadges.filter((badge) => badge.type === "TALK"),
+    topStands: topBadges.filter((badge) => badge.type === "STAND"),
+    topEvents,
+    byType,
+  };
+}
+
+export interface PlatformAuditRow {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  eventId: string | null;
+  eventName: string | null;
+  companyId: string | null;
+  companyName: string | null;
+  summary: string;
+  actorName: string;
+  actorRole: string | null;
+  createdAt: Date;
+}
+
+export interface PlatformAuditPage {
+  rows: PlatformAuditRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  query: string;
+  companyId: string;
+  eventId: string;
+  action: string;
+}
+
+/** Platform-wide audit trail with optional filters, newest first. */
+export async function getPlatformAuditLogs(
+  options: {
+    page?: number;
+    pageSize?: number;
+    query?: string;
+    companyId?: string;
+    /**
+     * Hard scope for company admins: the query can never widen it with a
+     * `companyId` filter outside this list.
+     */
+    companyIds?: string[];
+    eventId?: string;
+    action?: string;
+  } = {},
+): Promise<PlatformAuditPage> {
+  const pageSize = Math.min(Math.max(options.pageSize ?? 25, 1), 100);
+  const query = options.query?.trim() ?? "";
+  const requestedCompanyId = options.companyId?.trim() ?? "";
+  const scope = options.companyIds
+    ? options.companyIds.map((id) => id.trim()).filter(Boolean)
+    : null;
+  const companyId =
+    scope === null
+      ? requestedCompanyId
+      : requestedCompanyId && scope.includes(requestedCompanyId)
+        ? requestedCompanyId
+        : "";
+  const eventId = options.eventId?.trim() ?? "";
+  const action = options.action?.trim() ?? "";
+  const requestedPage = Math.max(options.page ?? 1, 1);
+
+  const where: Prisma.AuditLogWhereInput = {
+    ...(scope !== null
+      ? { companyId: companyId || { in: scope } }
+      : companyId
+        ? { companyId }
+        : {}),
+    ...(eventId ? { eventId } : {}),
+    ...(action ? { action } : {}),
+    ...(query
+      ? {
+          OR: [
+            { actorName: { contains: query, mode: "insensitive" } },
+            { summary: { contains: query, mode: "insensitive" } },
+            { eventName: { contains: query, mode: "insensitive" } },
+            { companyName: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const total = await prisma.auditLog.count({ where });
+  const maxPage = Math.max(Math.ceil(total / pageSize), 1);
+  const page = Math.min(requestedPage, maxPage);
+
+  const rows = await prisma.auditLog.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      action: true,
+      entityType: true,
+      entityId: true,
+      eventId: true,
+      eventName: true,
+      companyId: true,
+      companyName: true,
+      summary: true,
+      actorName: true,
+      actorRole: true,
+      createdAt: true,
+    },
+  });
+
+  return { rows, total, page, pageSize, query, companyId, eventId, action };
+}
+
+export interface PlatformUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: Date;
+  companies: string[];
+  events: number;
+  registrations: number;
+  scans: number;
+}
+
+export interface PlatformUserPage {
+  rows: PlatformUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+  query: string;
+  role: string;
+}
+
+/** Every account on the platform, searchable and filterable by role. */
+export async function getPlatformUsers(
+  options: {
+    page?: number;
+    pageSize?: number;
+    query?: string;
+    role?: string;
+  } = {},
+): Promise<PlatformUserPage> {
+  const pageSize = Math.min(Math.max(options.pageSize ?? 25, 1), 100);
+  const query = options.query?.trim() ?? "";
+  const role = options.role?.trim() ?? "";
+  const requestedPage = Math.max(options.page ?? 1, 1);
+
+  const roleFilter = (USER_ROLES as readonly string[]).includes(role)
+    ? (role as UserRoleValue)
+    : null;
+
+  const where: Prisma.UserWhereInput = {
+    ...(roleFilter ? { role: roleFilter as Role } : {}),
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  const total = await prisma.user.count({ where });
+  const maxPage = Math.max(Math.ceil(total / pageSize), 1);
+  const page = Math.min(requestedPage, maxPage);
+
+  const users = await prisma.user.findMany({
+    where,
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      companyMemberships: {
+        orderBy: { company: { name: "asc" } },
+        select: { company: { select: { name: true } } },
+      },
+      _count: {
+        select: { registrations: true, scans: true, organizedEvents: true },
+      },
+    },
+  });
+
+  return {
+    rows: users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      companies: user.companyMemberships.map(
+        (membership) => membership.company.name,
+      ),
+      events: user._count.organizedEvents,
+      registrations: user._count.registrations,
+      scans: user._count.scans,
+    })),
+    total,
+    page,
+    pageSize,
+    query,
+    role,
+  };
+}
+
+export interface PlatformOption {
+  id: string;
+  name: string;
+}
+
+/** Lightweight company list for filter selects. */
+export async function getCompanyOptions(): Promise<PlatformOption[]> {
+  return prisma.company.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
+/** Lightweight event list for filter selects. */
+export async function getEventOptions(): Promise<PlatformOption[]> {
+  return prisma.event.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
+/** Distinct audit actions already present, for the action filter. */
+export async function getAuditActionOptions(
+  companyIds?: string[],
+): Promise<string[]> {
+  const rows = await prisma.auditLog.findMany({
+    where: companyIds ? { companyId: { in: companyIds } } : {},
+    distinct: ["action"],
+    orderBy: { action: "asc" },
+    select: { action: true },
+  });
+
+  return rows.map((row) => row.action);
 }
 
 

@@ -27,7 +27,10 @@ export default function CreateTokenForm({
   );
 
   return (
-    <form action={formAction} className="mt-4 flex flex-wrap items-end gap-3">
+    <form
+      action={formAction}
+      className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+    >
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="kind" value={kind} />
       {eventBadgeId ? (
@@ -36,7 +39,7 @@ export default function CreateTokenForm({
 
       <div>
         <label htmlFor={`max-scans-${eventBadgeId ?? kind}`} className={labelClassName}>
-          Scan limit
+          Límite de escaneos
         </label>
         <input
           id={`max-scans-${eventBadgeId ?? kind}`}
@@ -44,17 +47,17 @@ export default function CreateTokenForm({
           type="number"
           min={1}
           step={1}
-          placeholder="Unlimited"
-          className={`${inputClassName} w-40`}
+          placeholder="Sin límite"
+          className={`${inputClassName} w-full sm:w-40`}
         />
       </div>
 
       <button
         type="submit"
         disabled={isPending}
-        className={`${primaryButtonClassName} px-4 py-3 text-xs`}
+        className={`${primaryButtonClassName} w-full px-4 py-3 text-xs sm:w-auto`}
       >
-        {isPending ? "Creating…" : "Create QR token"}
+        {isPending ? "Creando…" : "Crear token QR"}
       </button>
 
       {state.status === "error" ? (

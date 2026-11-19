@@ -31,7 +31,7 @@ export default function AddCompanyAdminForm({
           type="email"
           required
           placeholder="admin@example.com"
-          aria-label="Admin email"
+          aria-label="Email del admin"
           className={`${inputClassName} max-w-xs`}
         />
         <button
@@ -39,7 +39,7 @@ export default function AddCompanyAdminForm({
           disabled={isPending}
           className={`${secondaryButtonClassName} px-4 py-2 text-xs`}
         >
-          {isPending ? "Adding…" : "Add admin"}
+          {isPending ? "Agregando…" : "Agregar admin"}
         </button>
       </div>
 

@@ -19,6 +19,7 @@ import {
 import {
   rankAttendees,
   type LeaderboardEntry,
+  type LeaderboardMetric,
   type LeaderboardRanking,
 } from "@/lib/gamification/leaderboard";
 
@@ -370,23 +371,45 @@ export async function getEventSummaries(): Promise<EventSummary[]> {
 }
 
 /**
- * Raw leaderboard rows for one event.
+ * Raw leaderboard rows for one scope.
  *
- * This is the second cut over `Scan`: `WHERE eventId = X`, never across the
- * whole table. `Scan` has `@@unique([userId, eventBadgeId])`, so there is
- * exactly one row per attendee and badge, which means the count of rows per
- * attendee is the count of distinct badges they collected in the event. A
- * badge with several QR tokens still counts once.
+ * The scope is either one event (`eventId`) or the whole platform (`null`).
+ * This is the second cut over `Scan`: `WHERE eventId = X` for a single event,
+ * never across the whole table. `Scan` has `@@unique([userId, eventBadgeId])`,
+ * so there is exactly one row per attendee and badge, which means the count
+ * of rows per attendee is the count of distinct badges they collected. A badge
+ * with several QR tokens still counts once.
  *
- * The ranking is not computed here: `rankAttendees` owns that.
+ * Stands and talks are the same count filtered by `Badge.type`. `WELCOME` and
+ * `SPECIAL` badges add XP and badge count, but they are not a stand visit or a
+ * talk attendance.
+ *
+ * The order is not computed here: `rankAttendees` owns that.
  */
-async function readLeaderboard(eventId: string): Promise<LeaderboardRanking> {
-  const grouped = await prisma.scan.groupBy({
-    by: ["userId"],
-    where: { eventId },
-    _sum: { xpAwarded: true },
-    _count: { eventBadgeId: true },
-  });
+async function readLeaderboard(
+  eventId: string | null,
+  metric: LeaderboardMetric,
+): Promise<LeaderboardRanking> {
+  const where = eventId ? { eventId } : {};
+
+  const [grouped, stands, talks] = await Promise.all([
+    prisma.scan.groupBy({
+      by: ["userId"],
+      where,
+      _sum: { xpAwarded: true },
+      _count: { eventBadgeId: true },
+    }),
+    prisma.scan.groupBy({
+      by: ["userId"],
+      where: { ...where, eventBadge: { badge: { type: "STAND" } } },
+      _count: { eventBadgeId: true },
+    }),
+    prisma.scan.groupBy({
+      by: ["userId"],
+      where: { ...where, eventBadge: { badge: { type: "TALK" } } },
+      _count: { eventBadgeId: true },
+    }),
+  ]);
 
   const userIds = grouped.map((group) => group.userId);
 
@@ -396,6 +419,12 @@ async function readLeaderboard(eventId: string): Promise<LeaderboardRanking> {
   });
 
   const usersById = new Map(users.map((user) => [user.id, user]));
+  const standsByUser = new Map(
+    stands.map((group) => [group.userId, group._count.eventBadgeId]),
+  );
+  const talksByUser = new Map(
+    talks.map((group) => [group.userId, group._count.eventBadgeId]),
+  );
 
   const entries: LeaderboardEntry[] = [];
 
@@ -414,70 +443,43 @@ async function readLeaderboard(eventId: string): Promise<LeaderboardRanking> {
       image: user.image,
       xp: group._sum.xpAwarded ?? 0,
       badges: group._count.eventBadgeId,
+      stands: standsByUser.get(group.userId) ?? 0,
+      talks: talksByUser.get(group.userId) ?? 0,
     });
   }
 
-  return rankAttendees(entries);
+  return rankAttendees(entries, metric);
 }
 
 /**
  * Cached per-event leaderboard. Tagged with `leaderboard:${eventId}` so a
  * badge claim invalidates exactly the ranking of the event it belongs to.
+ * The metric is part of the cache key because it changes the row order.
  */
-export function getLeaderboard(eventId: string): Promise<LeaderboardRanking> {
+export function getLeaderboard(
+  eventId: string,
+  metric: LeaderboardMetric = "xp",
+): Promise<LeaderboardRanking> {
   const cached = unstable_cache(
-    async () => readLeaderboard(eventId),
-    ["leaderboard", eventId],
+    async () => readLeaderboard(eventId, metric),
+    ["leaderboard", eventId, metric],
     { tags: [leaderboardTag(eventId)] },
   );
 
   return cached();
 }
 
-/** Raw leaderboard rows across every event. */
-async function readGlobalLeaderboard(): Promise<LeaderboardRanking> {
-  const grouped = await prisma.scan.groupBy({
-    by: ["userId"],
-    _sum: { xpAwarded: true },
-    _count: { eventBadgeId: true },
-  });
-
-  const userIds = grouped.map((group) => group.userId);
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, name: true, image: true },
-  });
-  const usersById = new Map(users.map((user) => [user.id, user]));
-
-  const entries: LeaderboardEntry[] = [];
-
-  for (const group of grouped) {
-    const user = usersById.get(group.userId);
-
-    if (!user) {
-      continue;
-    }
-
-    entries.push({
-      userId: user.id,
-      name: user.name,
-      image: user.image,
-      xp: group._sum.xpAwarded ?? 0,
-      badges: group._count.eventBadgeId,
-    });
-  }
-
-  return rankAttendees(entries);
-}
-
 /**
  * Cached global leaderboard. Every event counts, so it answers the "who has
- * the most XP on the platform" question instead of the per-event ranking.
+ * the most XP, stands or talks on the platform" question instead of the
+ * per-event ranking.
  */
-export function getGlobalLeaderboard(): Promise<LeaderboardRanking> {
+export function getGlobalLeaderboard(
+  metric: LeaderboardMetric = "xp",
+): Promise<LeaderboardRanking> {
   const cached = unstable_cache(
-    readGlobalLeaderboard,
-    ["leaderboard-global"],
+    async () => readLeaderboard(null, metric),
+    ["leaderboard-global", metric],
     { tags: [globalLeaderboardTag()] },
   );
 

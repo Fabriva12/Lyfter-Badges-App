@@ -5,12 +5,12 @@ import EventTabs from "@/components/admin/EventTabs";
 import Notice from "@/components/admin/Notice";
 import PrizeForm from "@/components/admin/PrizeForm";
 import { cardClassName } from "@/components/admin/formStyles";
-import { formatUtcDateTime } from "@/lib/admin/format";
+import { formatDateTime } from "@/lib/admin/format";
 import { requireEventForAdmin } from "@/lib/admin/guards";
 import { getPrizeAdmin } from "@/lib/admin/queries";
 
 export const metadata: Metadata = {
-  title: "Prize · Admin · Lyfter Badges",
+  title: "Premio · Admin · Lyfter Badges",
 };
 
 interface PrizePageProps {
@@ -36,55 +36,55 @@ export default async function AdminPrizePage({
         >
           ← {event.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold">Prize</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Premio</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          One prize per event. Attendees see it when they complete the set, or
-          earlier if you announce it.
+          Un premio por evento. Los asistentes lo ven cuando completan el
+          conjunto, o antes si lo anuncias.
         </p>
       </div>
 
       {saved === "1" ? (
-        <Notice tone="success">Prize saved.</Notice>
+        <Notice tone="success">Premio guardado.</Notice>
       ) : null}
 
       <EventTabs eventId={event.id} active="prize" />
 
       <section className={cardClassName}>
-        <h2 className="text-lg font-bold text-[#f1f1ed]">Current state</h2>
+        <h2 className="text-lg font-bold text-[#f1f1ed]">Estado actual</h2>
 
         {!prize ? (
           <p className="mt-2 text-sm text-[#9ca3af]">
-            No prize configured yet. The attendee collection shows no prize card
-            for this event.
+            Todavía no hay un premio configurado. La colección de los asistentes
+            no muestra ninguna tarjeta de premio para este evento.
           </p>
         ) : (
           <dl className="mt-4 grid gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-xs uppercase tracking-widest text-[#9ca3af]">
-                Attendee visibility
+                Visibilidad para los asistentes
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[#f1f1ed]">
                 {prize.revealedAt
-                  ? "Announced to everyone"
-                  : "Secret until completion"}
+                  ? "Anunciado a todos"
+                  : "Secreto hasta completar el conjunto"}
               </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-widest text-[#9ca3af]">
-                Requirement
+                Requisito
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[#f1f1ed]">
-                {prize.requiredBadgesCount} of {badgeCount} badges
+                {prize.requiredBadgesCount} de {badgeCount} insignias
               </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-widest text-[#9ca3af]">
-                Announced at
+                Anunciado el
               </dt>
               <dd className="mt-1 text-sm font-semibold text-[#f1f1ed]">
                 {prize.revealedAt
-                  ? `${formatUtcDateTime(prize.revealedAt)} UTC`
-                  : "Not announced"}
+                  ? formatDateTime(prize.revealedAt)
+                  : "No anunciado"}
               </dd>
             </div>
           </dl>

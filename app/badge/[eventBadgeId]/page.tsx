@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ShareButtons from "@/components/share/ShareButtons";
+import { formatDate } from "@/lib/date";
 import { prisma } from "@/lib/db";
 import { getRequestOrigin } from "@/lib/request";
 import { buildShareText } from "@/lib/share";
@@ -59,30 +60,26 @@ export default async function BadgePage({ params }: BadgePageProps) {
   const { badge, event } = eventBadge;
   const origin = await getRequestOrigin();
   const url = `${origin}/badge/${eventBadgeId}`;
+  const imageUrl = `${origin}/badge/${eventBadgeId}/opengraph-image`;
   const text = buildShareText({
     badgeName: badge.name,
     eventName: event.name,
     xp: badge.xpValue,
   });
-  const eventDate = event.startsAt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  const eventDate = formatDate(event.startsAt);
 
   return (
     <main className="min-h-screen bg-[#171b21] text-[#f1f1ed]">
-      <div className="mx-auto max-w-[1240px] px-4 py-16">
-        <header className="mb-10">
+      <div className="mx-auto max-w-[1240px] px-4 py-10 sm:py-16">
+        <header className="mb-8 sm:mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
             Badge
           </p>
-          <h1 className="mt-2 text-3xl font-bold">{badge.name}</h1>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{badge.name}</h1>
         </header>
 
-        <div className="space-y-8">
-          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 shadow-2xl shadow-black/30">
+        <div className="space-y-6 sm:space-y-8">
+          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8">
             <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:text-left">
               {badge.imageUrl ? (
                 <Image
@@ -125,7 +122,7 @@ export default async function BadgePage({ params }: BadgePageProps) {
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 shadow-2xl shadow-black/30">
+          <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8">
             <h2 className="text-xl font-bold text-[#f1f1ed]">
               Share this badge
             </h2>
@@ -135,11 +132,16 @@ export default async function BadgePage({ params }: BadgePageProps) {
             </p>
 
             <div className="mt-6">
-              <ShareButtons url={url} text={text} title={badge.name} />
+              <ShareButtons
+                url={url}
+                text={text}
+                title={badge.name}
+                imageUrl={imageUrl}
+              />
             </div>
           </section>
 
-          <section className="rounded-xl border border-[#394351] bg-[#1f252d] p-8 text-center shadow-2xl shadow-black/30">
+          <section className="rounded-xl border border-[#394351] bg-[#1f252d] p-5 text-center shadow-2xl shadow-black/30 sm:p-8">
             <h2 className="text-lg font-bold text-[#f1f1ed]">
               Not collecting badges yet?
             </h2>
@@ -149,7 +151,7 @@ export default async function BadgePage({ params }: BadgePageProps) {
             </p>
             <Link
               href="/login"
-              className="mt-6 inline-block rounded-lg bg-[#a8d889] px-6 py-3 text-sm font-bold text-[#263021] transition hover:bg-[#b8e39a]"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-[#a8d889] px-6 text-sm font-bold text-[#263021] transition hover:bg-[#b8e39a]"
             >
               Create an account
             </Link>

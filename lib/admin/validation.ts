@@ -1,6 +1,4 @@
-// Pure input parsing for the admin forms. Every Server Action uses these
-// helpers before touching the database, so a malformed form never reaches
-// Prisma. No Prisma import: all of this is testable with plain values.
+import { parseLocalDateTime } from "../date";
 
 export type ParseResult<T> =
   | { ok: true; value: T }
@@ -17,6 +15,9 @@ export type BadgeTypeValue = (typeof BADGE_TYPES)[number];
 
 export const BADGE_RARITIES = ["COMMON", "RARE", "LIMITED"] as const;
 export type BadgeRarityValue = (typeof BADGE_RARITIES)[number];
+
+export const USER_ROLES = ["ATTENDEE", "ADMIN", "SUPER_ADMIN"] as const;
+export type UserRoleValue = (typeof USER_ROLES)[number];
 
 export interface EventInput {
   name: string;
@@ -42,7 +43,7 @@ function parseMode(value: unknown): ParseResult<EventModeValue> {
   const raw = trimmed(value) || "IN_PERSON";
 
   if (!EVENT_MODES.includes(raw as EventModeValue)) {
-    return { ok: false, error: "Choose a valid event mode." };
+    return { ok: false, error: "Selecciona un modo de evento válido." };
   }
 
   return { ok: true, value: raw as EventModeValue };
@@ -52,7 +53,7 @@ function parseStatus(value: unknown): ParseResult<EventStatusValue> {
   const raw = trimmed(value) || "DRAFT";
 
   if (!EVENT_STATUSES.includes(raw as EventStatusValue)) {
-    return { ok: false, error: "Choose a valid event status." };
+    return { ok: false, error: "Selecciona un estado de evento válido." };
   }
 
   return { ok: true, value: raw as EventStatusValue };
@@ -62,7 +63,7 @@ export function parseBadgeType(value: unknown): ParseResult<BadgeTypeValue> {
   const raw = trimmed(value) || "TALK";
 
   if (!BADGE_TYPES.includes(raw as BadgeTypeValue)) {
-    return { ok: false, error: "Choose a valid badge type." };
+    return { ok: false, error: "Selecciona un tipo de insignia válido." };
   }
 
   return { ok: true, value: raw as BadgeTypeValue };
@@ -74,39 +75,20 @@ export function parseBadgeRarity(
   const raw = trimmed(value) || "COMMON";
 
   if (!BADGE_RARITIES.includes(raw as BadgeRarityValue)) {
-    return { ok: false, error: "Choose a valid badge rarity." };
+    return { ok: false, error: "Selecciona una rareza de insignia válida." };
   }
 
   return { ok: true, value: raw as BadgeRarityValue };
 }
 
-/**
- * Parses the `datetime-local` value the admin form submits.
- *
- * The whole app renders dates in UTC (the public pages format with
- * `timeZone: "UTC"`), so a browser-local value would silently shift the event.
- * A value without a timezone is therefore read as UTC.
- */
-export function parseUtcDateTime(value: unknown): Date | null {
+export function parseUserRole(value: unknown): ParseResult<UserRoleValue> {
   const raw = trimmed(value);
 
-  if (!raw) {
-    return null;
+  if (!USER_ROLES.includes(raw as UserRoleValue)) {
+    return { ok: false, error: "Selecciona un rol válido." };
   }
 
-  // `datetime-local` submits "YYYY-MM-DDTHH:mm"; tag it as UTC.
-  const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)
-    ? `${raw}:00.000Z`
-    : raw;
-
-  const date = new Date(normalized);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-/** Value for a `datetime-local` input, rendered in UTC. */
-export function toUtcInputValue(date: Date): string {
-  return date.toISOString().slice(0, 16);
+  return { ok: true, value: raw as UserRoleValue };
 }
 
 export function parseEventInput(raw: {
@@ -122,13 +104,13 @@ export function parseEventInput(raw: {
   const name = trimmed(raw.name);
 
   if (name.length < 2) {
-    return { ok: false, error: "Enter an event name of at least 2 characters." };
+    return { ok: false, error: "Ingresa un nombre de evento de al menos 2 caracteres." };
   }
 
   if (name.length > MAX_NAME) {
     return {
       ok: false,
-      error: `The event name must be at most ${MAX_NAME} characters.`,
+      error: `El nombre del evento debe tener como máximo ${MAX_NAME} caracteres.`,
     };
   }
 
@@ -139,21 +121,21 @@ export function parseEventInput(raw: {
   if (description.length > MAX_DESCRIPTION) {
     return {
       ok: false,
-      error: `The description must be at most ${MAX_DESCRIPTION} characters.`,
+      error: `La descripción debe tener como máximo ${MAX_DESCRIPTION} caracteres.`,
     };
   }
 
   if (location.length > MAX_LOCATION) {
     return {
       ok: false,
-      error: `The location must be at most ${MAX_LOCATION} characters.`,
+      error: `La ubicación debe tener como máximo ${MAX_LOCATION} caracteres.`,
     };
   }
 
   if (country.length > MAX_COUNTRY) {
     return {
       ok: false,
-      error: `The country must be at most ${MAX_COUNTRY} characters.`,
+      error: `El país debe tener como máximo ${MAX_COUNTRY} caracteres.`,
     };
   }
 
@@ -169,19 +151,19 @@ export function parseEventInput(raw: {
     return status;
   }
 
-  const startsAt = parseUtcDateTime(raw.startsAt);
-  const endsAt = parseUtcDateTime(raw.endsAt);
+  const startsAt = parseLocalDateTime(raw.startsAt);
+  const endsAt = parseLocalDateTime(raw.endsAt);
 
   if (!startsAt) {
-    return { ok: false, error: "Enter a valid start date and time." };
+    return { ok: false, error: "Ingresa una fecha y hora de inicio válidas." };
   }
 
   if (!endsAt) {
-    return { ok: false, error: "Enter a valid end date and time." };
+    return { ok: false, error: "Ingresa una fecha y hora de fin válidas." };
   }
 
   if (endsAt.getTime() <= startsAt.getTime()) {
-    return { ok: false, error: "The event must end after it starts." };
+    return { ok: false, error: "El evento debe terminar después de comenzar." };
   }
 
   return {
@@ -206,7 +188,7 @@ export function parseXpValue(value: unknown): ParseResult<number> {
   if (!raw || !Number.isInteger(xp) || xp < 1 || xp > 10000) {
     return {
       ok: false,
-      error: "XP must be a whole number between 1 and 10000.",
+      error: "XP debe ser un número entero entre 1 y 10000.",
     };
   }
 
@@ -226,7 +208,7 @@ export function parseMaxScans(value: unknown): ParseResult<number | null> {
   if (!Number.isInteger(max) || max < 1 || max > 100000) {
     return {
       ok: false,
-      error: "The scan limit must be a whole number between 1 and 100000.",
+      error: "El límite de escaneos debe ser un número entero entre 1 y 100000.",
     };
   }
 
@@ -244,7 +226,7 @@ export function parseRequiredBadges(
   if (eventBadgeCount < 1) {
     return {
       ok: false,
-      error: "Add at least one badge to the event before creating a prize.",
+      error: "Agrega al menos una insignia al evento antes de crear un premio.",
     };
   }
 
@@ -252,13 +234,13 @@ export function parseRequiredBadges(
   const required = Number(raw);
 
   if (!Number.isInteger(required) || required < 1) {
-    return { ok: false, error: "The prize must require at least one badge." };
+    return { ok: false, error: "El premio debe requerir al menos una insignia." };
   }
 
   if (required > eventBadgeCount) {
     return {
       ok: false,
-      error: `This event only has ${eventBadgeCount} badge(s).`,
+      error: `Este evento solo tiene ${eventBadgeCount} ${eventBadgeCount === 1 ? "insignia" : "insignias"}.`,
     };
   }
 
@@ -276,7 +258,7 @@ export function parseOptionalText(
   if (raw.length > max) {
     return {
       ok: false,
-      error: `${label} must be at most ${max} characters.`,
+      error: `${label} debe tener como máximo ${max} caracteres.`,
     };
   }
 
@@ -292,7 +274,7 @@ export function parseEmail(value: unknown): ParseResult<string> {
     email.length > 254 ||
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   ) {
-    return { ok: false, error: "Enter a valid email address." };
+    return { ok: false, error: "Ingresa un correo electrónico válido." };
   }
 
   return { ok: true, value: email };

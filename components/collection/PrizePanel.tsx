@@ -1,18 +1,10 @@
 import Image from "next/image";
 
+import { formatDate } from "@/lib/date";
 import type { EventPrize } from "@/lib/gamification/queries";
 
 interface PrizePanelProps {
   prize: EventPrize;
-}
-
-function formatAnnouncementDate(date: Date) {
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 function pluralizeBadges(count: number) {
@@ -174,7 +166,7 @@ export default function PrizePanel({ prize }: PrizePanelProps) {
           ) : null}
           {announced && details.revealedAt ? (
             <p className="mt-1 text-xs text-[#9ca3af]">
-              Announced on {formatAnnouncementDate(details.revealedAt)}
+              Announced on {formatDate(details.revealedAt)}
             </p>
           ) : null}
         </div>

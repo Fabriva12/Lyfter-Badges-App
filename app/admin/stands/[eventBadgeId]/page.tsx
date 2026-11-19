@@ -7,7 +7,7 @@ import StandVisits from "@/components/admin/StandVisits";
 import StatCard from "@/components/admin/StatCard";
 import TokenCard from "@/components/admin/TokenCard";
 import { cardClassName } from "@/components/admin/formStyles";
-import { formatUtcDateTime, formatUtcRange } from "@/lib/admin/format";
+import { formatDateTime, formatEventRange } from "@/lib/admin/format";
 import { requireStandForAdmin } from "@/lib/admin/guards";
 import { getStandDetail } from "@/lib/admin/queries";
 import { getRequestOrigin } from "@/lib/request";
@@ -42,18 +42,18 @@ export default async function AdminStandPage({ params }: StandPageProps) {
           href="/admin"
           className="text-sm font-semibold text-[#9ca3af] transition hover:text-[#f1f1ed]"
         >
-          ← Your stands
+          ← Tus stands
         </Link>
 
         <header className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
-            Partner stand
+            Stand del socio
           </p>
-          <h1 className="mt-2 text-3xl font-bold">{stand.badge.name}</h1>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{stand.badge.name}</h1>
           <p className="mt-2 text-sm text-[#9ca3af]">
             {stand.event.name}
             {stand.room ? ` · ${stand.room}` : ""} ·{" "}
-            {formatUtcRange(stand.event.startsAt, stand.event.endsAt)}
+            {formatEventRange(stand.event.startsAt, stand.event.endsAt)}
           </p>
           {stand.badge.description ? (
             <p className="mt-2 max-w-2xl text-sm text-[#9ca3af]">
@@ -64,32 +64,32 @@ export default async function AdminStandPage({ params }: StandPageProps) {
       </div>
 
       <Notice tone="info">
-        This view is read-only. Only the event organizer can create or
-        deactivate QR tokens and change which stand you own.
+        Esta vista es de solo lectura. Solo el organizador del evento puede
+        crear o desactivar tokens QR y cambiar qué stand te pertenece.
       </Notice>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Scans" value={stand.scans} />
-        <StatCard label="Visitors" value={stand.visitors} />
+        <StatCard label="Escaneos" value={stand.scans} />
+        <StatCard label="Visitantes" value={stand.visitors} />
         <StatCard
-          label="Active QR tokens"
+          label="Tokens QR activos"
           value={activeTokens}
-          hint={`${stand.tokens.length} total`}
+          hint={`${stand.tokens.length} en total`}
         />
-        <StatCard label="XP per scan" value={`+${stand.badge.xpValue}`} />
+        <StatCard label="XP por escaneo" value={`+${stand.badge.xpValue}`} />
       </div>
 
       <section className={cardClassName}>
-        <h2 className="text-lg font-bold text-[#f1f1ed]">QR tokens</h2>
+        <h2 className="text-lg font-bold text-[#f1f1ed]">Tokens QR</h2>
         <p className="mt-1 text-sm text-[#9ca3af]">
-          Print these codes for the stand. Every scan awards the badge once per
-          attendee.
+          Imprimí estos códigos para el stand. Cada escaneo otorga la insignia
+          una vez por asistente.
         </p>
 
         <ul className="mt-5 space-y-3">
           {stand.tokens.length === 0 ? (
             <li className="text-sm text-[#9ca3af]">
-              The organizer has not created a QR token for this stand yet.
+              El organizador todavía no creó un token QR para este stand.
             </li>
           ) : (
             stand.tokens.map((token) => (
@@ -108,9 +108,12 @@ export default async function AdminStandPage({ params }: StandPageProps) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className={cardClassName}>
-          <h2 className="text-lg font-bold text-[#f1f1ed]">Recent visits</h2>
+          <h2 className="text-lg font-bold text-[#f1f1ed]">
+            Visitas recientes
+          </h2>
           <p className="mt-1 text-sm text-[#9ca3af]">
-            Attendees who scanned this stand, newest first.
+            Asistentes que escanearon este stand, del más reciente al más
+            antiguo.
           </p>
           <div className="mt-4">
             <StandVisits visits={stand.visits} />
@@ -121,23 +124,23 @@ export default async function AdminStandPage({ params }: StandPageProps) {
           <h2 className="text-lg font-bold text-[#f1f1ed]">Event</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-[#9ca3af]">Name</dt>
+              <dt className="text-[#9ca3af]">Nombre</dt>
               <dd className="font-semibold text-[#f1f1ed]">
                 {stand.event.name}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-[#9ca3af]">Location</dt>
+              <dt className="text-[#9ca3af]">Ubicación</dt>
               <dd className="font-semibold text-[#f1f1ed]">
                 {stand.event.location ?? "—"}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-[#9ca3af]">Last scan</dt>
+              <dt className="text-[#9ca3af]">Último escaneo</dt>
               <dd className="font-semibold text-[#f1f1ed]">
                 {stand.lastScanAt
-                  ? `${formatUtcDateTime(stand.lastScanAt)} UTC`
-                  : "No scans yet"}
+                  ? formatDateTime(stand.lastScanAt)
+                  : "Todavía no hay escaneos"}
               </dd>
             </div>
           </dl>
@@ -146,7 +149,7 @@ export default async function AdminStandPage({ params }: StandPageProps) {
             href={`/leaderboard?event=${stand.event.slug}`}
             className="mt-5 inline-block rounded-lg border border-[#394351] px-4 py-2 text-sm font-semibold text-[#d7dce3] transition hover:bg-[#272d36]"
           >
-            Public leaderboard
+            Clasificación pública
           </Link>
         </section>
       </div>

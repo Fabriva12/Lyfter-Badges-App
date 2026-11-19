@@ -13,7 +13,7 @@ import {
 } from "@/lib/admin/validation";
 import { configTag } from "@/lib/gamification/queries";
 
-const UNEXPECTED_ERROR = "Something went wrong. Please try again.";
+const UNEXPECTED_ERROR = "Ocurrió un error. Inténtalo de nuevo.";
 
 function trimmed(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -42,21 +42,21 @@ export async function savePrize(
   if (name.length < 2 || name.length > 120) {
     return {
       status: "error",
-      message: "The prize name must be between 2 and 120 characters.",
+      message: "El nombre del premio debe tener entre 2 y 120 caracteres.",
     };
   }
 
   const description = parseOptionalText(
     formData.get("description"),
     1000,
-    "The description",
+    "La descripción",
   );
 
   if (!description.ok) {
     return { status: "error", message: description.error };
   }
 
-  const imageUrl = parseOptionalText(formData.get("imageUrl"), 500, "The image URL");
+  const imageUrl = parseOptionalText(formData.get("imageUrl"), 500, "La URL de la imagen");
 
   if (!imageUrl.ok) {
     return { status: "error", message: imageUrl.error };
@@ -65,7 +65,7 @@ export async function savePrize(
   if (imageUrl.value && !isHttpUrl(imageUrl.value)) {
     return {
       status: "error",
-      message: "The image URL must start with http:// or https://.",
+      message: "La URL de la imagen debe comenzar con http:// o https://.",
     };
   }
 
@@ -118,13 +118,15 @@ export async function savePrize(
   await logAudit({
     eventId: event.id,
     eventName: event.name,
+    companyId: event.companyId,
+    companyName: event.company?.name ?? null,
     actor: session.user,
     action: "prize.saved",
     entityType: "prize",
     entityId: event.id,
     summary: announce
-      ? `Saved and announced the prize “${name}”.`
-      : `Saved the prize “${name}” without announcing it.`,
+      ? `Guardaste y anunciaste el premio “${name}”.`
+      : `Guardaste el premio “${name}” sin anunciarlo.`,
     metadata: {
       requiredBadgesCount: requiredBadges.value,
       announced: announce,

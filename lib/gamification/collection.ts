@@ -1,5 +1,5 @@
 // Pure collection and prize logic. No Prisma import: this module must stay
-// testable with plain data.
+  // testable with plain data.
 
 export interface CollectionProgress {
   /** Distinct badges collected in the event. */

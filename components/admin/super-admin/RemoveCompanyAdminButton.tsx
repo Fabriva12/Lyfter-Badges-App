@@ -28,10 +28,10 @@ export default function RemoveCompanyAdminButton({
       <button
         type="submit"
         disabled={isPending}
-        aria-label={`Remove ${userName} from this company`}
+        aria-label={`Quitar a ${userName} de esta empresa`}
         className="text-xs font-semibold text-[#ffb3ba] transition hover:text-[#ffd1d6] disabled:opacity-60"
       >
-        {isPending ? "Removing…" : "Remove"}
+        {isPending ? "Quitando…" : "Quitar"}
       </button>
       {state.status === "error" ? (
         <span role="alert" className="ml-2 text-xs text-[#ffb3ba]">

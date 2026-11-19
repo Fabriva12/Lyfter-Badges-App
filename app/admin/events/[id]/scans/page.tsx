@@ -10,7 +10,7 @@ import { getEventScans } from "@/lib/admin/queries";
 import { getLeaderboard } from "@/lib/gamification/queries";
 
 export const metadata: Metadata = {
-  title: "Scans · Admin · Lyfter Badges",
+  title: "Escaneos · Admin · Lyfter Badges",
 };
 
 interface ScansPageProps {
@@ -63,9 +63,10 @@ export default async function AdminScansPage({
         >
           ← {event.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold">Scans</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Escaneos</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          Every badge redemption of this event, newest first.
+          Todos los canjes de insignias de este evento, de los más recientes a
+          los más antiguos.
         </p>
       </div>
 
@@ -74,10 +75,10 @@ export default async function AdminScansPage({
       <section className={cardClassName}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-[#f1f1ed]">Scan log</h2>
+            <h2 className="text-lg font-bold text-[#f1f1ed]">Registro de escaneos</h2>
             <p className="mt-1 text-sm text-[#9ca3af]">
-              {scans.total} {scans.total === 1 ? "redemption" : "redemptions"}
-              {scans.query ? ` matching “${scans.query}”` : ""}.
+              {scans.total} {scans.total === 1 ? "canje" : "canjes"}
+              {scans.query ? ` que coinciden con “${scans.query}”` : ""}.
             </p>
           </div>
 
@@ -86,14 +87,14 @@ export default async function AdminScansPage({
               type="search"
               name="q"
               defaultValue={scans.query}
-              placeholder="Attendee, email or badge"
+              placeholder="Asistente, correo o insignia"
               className={inputClassName}
             />
             <button
               type="submit"
               className="rounded-lg border border-[#394351] px-4 py-2 text-sm font-semibold text-[#d7dce3] transition hover:bg-[#272d36]"
             >
-              Search
+              Buscar
             </button>
           </form>
         </div>
@@ -101,7 +102,7 @@ export default async function AdminScansPage({
         <div className="mt-5">
           <ScanTable
             scans={scans.rows}
-            emptyMessage="No scans match this filter yet."
+            emptyMessage="Ningún escaneo coincide con este filtro."
           />
         </div>
 
@@ -140,7 +141,11 @@ export default async function AdminScansPage({
       </section>
 
       {ranking.rows.length > 0 ? (
-        <LeaderboardTable rows={ranking.rows.slice(0, 10)} currentUserId="" />
+        <LeaderboardTable
+          rows={ranking.rows.slice(0, 10)}
+          currentUserId=""
+          metric="xp"
+        />
       ) : (
         <p className="rounded-xl border border-[#39424f] bg-[#252c35] px-4 py-8 text-center text-sm text-[#9ca3af]">
           The ranking appears as soon as the first badge is scanned.

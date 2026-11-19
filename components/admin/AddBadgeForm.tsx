@@ -41,7 +41,7 @@ export default function AddBadgeForm({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="badge-name" className={labelClassName}>
-            Badge name
+            Nombre de la insignia
           </label>
           <input
             id="badge-name"
@@ -49,7 +49,7 @@ export default function AddBadgeForm({
             required
             maxLength={120}
             list="badge-catalog"
-            placeholder="Opening Keynote"
+            placeholder="Charla inaugural"
             className={inputClassName}
           />
           <datalist id="badge-catalog">
@@ -63,7 +63,7 @@ export default function AddBadgeForm({
 
         <div>
           <label htmlFor="badge-xp" className={labelClassName}>
-            XP (only for new badges)
+            XP (solo para insignias nuevas)
           </label>
           <input
             id="badge-xp"
@@ -79,7 +79,7 @@ export default function AddBadgeForm({
 
         <div>
           <label htmlFor="badge-type" className={labelClassName}>
-            Type
+            Tipo
           </label>
           <select
             id="badge-type"
@@ -97,7 +97,7 @@ export default function AddBadgeForm({
 
         <div>
           <label htmlFor="badge-rarity" className={labelClassName}>
-            Rarity
+            Rareza
           </label>
           <select
             id="badge-rarity"
@@ -115,20 +115,20 @@ export default function AddBadgeForm({
 
         <div>
           <label htmlFor="badge-room" className={labelClassName}>
-            Room / stand
+            Sala / stand
           </label>
           <input
             id="badge-room"
             name="room"
             maxLength={120}
-            placeholder="Main stage"
+            placeholder="Escenario principal"
             className={inputClassName}
           />
         </div>
 
         <div>
           <label htmlFor="badge-starts-at" className={labelClassName}>
-            Starts (UTC, optional)
+            Inicio (hora Costa Rica, opcional)
           </label>
           <input
             id="badge-starts-at"
@@ -140,20 +140,20 @@ export default function AddBadgeForm({
 
         <div className="sm:col-span-2 lg:col-span-4">
           <label htmlFor="badge-description" className={labelClassName}>
-            Description
+            Descripción
           </label>
           <textarea
             id="badge-description"
             name="description"
             rows={2}
             maxLength={1000}
-            placeholder="What does this badge represent?"
+            placeholder="¿Qué representa esta insignia?"
             className={inputClassName}
           />
         </div>
 
         <fieldset className="sm:col-span-2 lg:col-span-4">
-          <legend className={labelClassName}>Icon</legend>
+          <legend className={labelClassName}>Ícono</legend>
           <div className="mt-2 grid grid-cols-5 gap-2 sm:grid-cols-10">
             {BADGE_ICON_KEYS.map((key) => (
               <label
@@ -176,8 +176,8 @@ export default function AddBadgeForm({
       </div>
 
       <p className="mt-3 text-xs text-[#9ca3af]">
-        Reusing a name from the catalog keeps that badge&apos;s current XP,
-        description, type, rarity and icon.
+        Reutilizar un nombre del catálogo conserva el XP, la descripción, el
+        tipo, la rareza y el ícono actuales de esa insignia.
       </p>
 
       {state.status === "error" ? (
@@ -194,7 +194,7 @@ export default function AddBadgeForm({
         disabled={isPending}
         className={`mt-4 ${primaryButtonClassName}`}
       >
-        {isPending ? "Adding…" : "Add badge to event"}
+        {isPending ? "Agregando…" : "Agregar insignia al evento"}
       </button>
     </form>
   );

@@ -16,13 +16,13 @@ export default function LevelCard({
   const percent = Math.round(level.progress * 100);
 
   return (
-    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-8 shadow-2xl shadow-black/30">
-      <div className="flex items-start justify-between gap-6">
+    <section className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8">
+      <div className="flex flex-wrap items-start justify-between gap-4 sm:gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
             Level {level.level}
           </p>
-          <h2 className="mt-2 text-3xl font-bold text-[#f1f1ed]">
+          <h2 className="mt-2 text-2xl font-bold text-[#f1f1ed] sm:text-3xl">
             {level.name}
           </h2>
         </div>

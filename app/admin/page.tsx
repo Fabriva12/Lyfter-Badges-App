@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import OrganizerDashboard from "@/components/admin/OrganizerDashboard";
+import Notice from "@/components/admin/Notice";
 import PartnerDashboard from "@/components/admin/PartnerDashboard";
 import { requireAdmin } from "@/lib/admin/guards";
 import {
@@ -14,8 +15,13 @@ export const metadata: Metadata = {
   title: "Admin · Lyfter Badges",
 };
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleted?: string }>;
+}) {
   const session = await requireAdmin();
+  const { deleted } = await searchParams;
 
   if (session.user.role === "SUPER_ADMIN") {
     redirect("/super-admin");
@@ -29,8 +35,8 @@ export default async function AdminDashboardPage() {
   if (companies.length === 0 && stands.length === 0) {
     return (
       <p className="rounded-xl border border-[#39424f] bg-[#252c35] px-4 py-8 text-center text-sm text-[#9ca3af]">
-        Your account has no company or stand assigned yet. Ask a super admin to
-        grant you access.
+        Tu cuenta todavía no tiene una empresa ni un stand asignados. Pide a un
+        super admin que te otorgue acceso.
       </p>
     );
   }
@@ -41,6 +47,10 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-14">
+      {deleted === "1" ? (
+        <Notice tone="success">Evento eliminado. Se conservó su registro de auditoría.</Notice>
+      ) : null}
+
       {companies.length > 0 ? (
         <OrganizerDashboard events={events} companies={companies} />
       ) : null}

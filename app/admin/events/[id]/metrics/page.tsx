@@ -10,16 +10,74 @@ import {
   peakHour,
 } from "@/lib/admin/metrics";
 import { requireEventForAdmin } from "@/lib/admin/guards";
-import { getEventMetricsDetail } from "@/lib/admin/queries";
+import {
+  getEventMetricsDetail,
+  type BadgeVisit,
+} from "@/lib/admin/queries";
 import { BadgeIcon } from "@/lib/badges/icons";
 import { BADGE_RARITY_LABELS, BADGE_TYPE_LABELS } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Metrics · Admin · Lyfter Badges",
+  title: "Métricas · Admin · Lyfter Badges",
 };
 
 interface MetricsPageProps {
   params: Promise<{ id: string }>;
+}
+
+interface BadgeVisitGroupProps {
+  title: string;
+  items: BadgeVisit[];
+  maxScans: number;
+}
+
+function BadgeVisitGroup({ title, items, maxScans }: BadgeVisitGroupProps) {
+  return (
+    <div>
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[#9ca3af]">
+        {title}
+      </h3>
+
+      {items.length === 0 ? (
+        <p className="mt-3 text-sm text-[#9ca3af]">Todavía no hay escaneos.</p>
+      ) : (
+        <ul className="mt-3 space-y-4">
+          {items.map((badge) => (
+            <li key={badge.eventBadgeId}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#39424f] bg-[#1f252d] text-[#9ca3af]">
+                    <BadgeIcon name={badge.iconKey} className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-[#f1f1ed]">
+                      {badge.name}
+                    </p>
+                    <p className="text-xs text-[#9ca3af]">
+                      {BADGE_TYPE_LABELS[badge.type] ?? badge.type}
+                      {badge.room ? ` · ${badge.room}` : ""}
+                      {badge.rarity !== "COMMON"
+                        ? ` · ${BADGE_RARITY_LABELS[badge.rarity] ?? badge.rarity}`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-sm font-bold text-[#a8d889]">
+                  {badge.scans}
+                </span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1f252d]">
+                <div
+                  className="h-full rounded-full bg-[#36bde9]"
+                  style={{ width: `${barWidth(badge.scans, maxScans)}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 export default async function AdminMetricsPage({ params }: MetricsPageProps) {
@@ -34,6 +92,11 @@ export default async function AdminMetricsPage({ params }: MetricsPageProps) {
     ...metrics.topBadges.map((badge) => badge.scans),
     1,
   );
+  const talks = metrics.topBadges.filter((badge) => badge.type === "TALK");
+  const stands = metrics.topBadges.filter((badge) => badge.type === "STAND");
+  const otherBadges = metrics.topBadges.filter(
+    (badge) => badge.type !== "TALK" && badge.type !== "STAND",
+  );
 
   return (
     <div className="space-y-6">
@@ -44,83 +107,66 @@ export default async function AdminMetricsPage({ params }: MetricsPageProps) {
         >
           ← {event.name}
         </Link>
-        <h1 className="mt-3 text-3xl font-bold">Metrics</h1>
+        <h1 className="mt-3 text-2xl font-bold sm:text-3xl">Métricas</h1>
         <p className="mt-2 text-sm text-[#9ca3af]">
-          What attendees visited and when. All hours are UTC, like the rest of
-          the admin.
+          Qué visitaron los asistentes y cuándo. Todas las horas son de Costa
+          Rica.
         </p>
       </div>
 
       <EventTabs eventId={event.id} active="metrics" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Scans" value={metrics.totalScans} />
-        <StatCard label="Registered" value={metrics.attendees} />
+        <StatCard label="Escaneos" value={metrics.totalScans} />
+        <StatCard label="Registrados" value={metrics.attendees} />
         <StatCard
-          label="Collected a badge"
+          label="Obtuvieron una insignia"
           value={metrics.attendeesWithScans}
         />
         <StatCard
-          label="XP awarded"
+          label="XP otorgados"
           value={metrics.xpAwarded}
-          hint={`${metrics.badges} badges available`}
+          hint={`${metrics.badges} insignias disponibles`}
         />
       </div>
 
       <section className={cardClassName}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-bold text-[#f1f1ed]">
-            Most visited talks & stands
+            Insignias más visitadas
           </h2>
           {busiestBadge ? (
             <p className="text-sm text-[#9ca3af]">
-              Top: <span className="font-semibold text-[#f1f1ed]">{busiestBadge.name}</span>{" "}
-              ({busiestBadge.scans} scans)
+              Más visitada: <span className="font-semibold text-[#f1f1ed]">{busiestBadge.name}</span>{" "}
+              ({busiestBadge.scans} escaneos)
             </p>
           ) : null}
         </div>
 
         {metrics.topBadges.length === 0 ? (
           <p className="mt-5 rounded-lg border border-[#39424f] bg-[#1f252d] px-4 py-6 text-center text-sm text-[#9ca3af]">
-            Add badges to this event to start collecting metrics.
+            Agrega insignias a este evento para empezar a recopilar métricas.
           </p>
         ) : (
-          <ul className="mt-5 space-y-4">
-            {metrics.topBadges.map((badge) => (
-              <li key={badge.eventBadgeId}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#39424f] bg-[#1f252d] text-[#9ca3af]">
-                      <BadgeIcon name={badge.iconKey} className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-[#f1f1ed]">
-                        {badge.name}
-                      </p>
-                      <p className="text-xs text-[#9ca3af]">
-                        {BADGE_TYPE_LABELS[badge.type] ?? badge.type}
-                        {badge.room ? ` · ${badge.room}` : ""}
-                        {badge.rarity !== "COMMON"
-                          ? ` · ${BADGE_RARITY_LABELS[badge.rarity] ?? badge.rarity}`
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-sm font-bold text-[#a8d889]">
-                    {badge.scans}
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#1f252d]">
-                  <div
-                    className="h-full rounded-full bg-[#36bde9]"
-                    style={{
-                      width: `${barWidth(badge.scans, maxBadgeScans)}%`,
-                    }}
-                  />
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-5 space-y-8">
+            <BadgeVisitGroup
+              title="Charlas"
+              items={talks}
+              maxScans={maxBadgeScans}
+            />
+            <BadgeVisitGroup
+              title="Stands"
+              items={stands}
+              maxScans={maxBadgeScans}
+            />
+            {otherBadges.length > 0 ? (
+              <BadgeVisitGroup
+                title="Otras insignias"
+                items={otherBadges}
+                maxScans={maxBadgeScans}
+              />
+            ) : null}
+          </div>
         )}
       </section>
 
@@ -128,12 +174,12 @@ export default async function AdminMetricsPage({ params }: MetricsPageProps) {
         <section className={cardClassName}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-bold text-[#f1f1ed]">
-              Attendance by hour
+              Asistencia por hora
             </h2>
             <p className="text-sm text-[#9ca3af]">
               {peak
-                ? `Peak at ${formatHour(peak.hour)} UTC (${peak.count} scans)`
-                : "No scans yet"}
+                ? `Pico a las ${formatHour(peak.hour)} (${peak.count} escaneos)`
+                : "Todavía no hay escaneos"}
             </p>
           </div>
 
@@ -145,7 +191,7 @@ export default async function AdminMetricsPage({ params }: MetricsPageProps) {
                 <div
                   key={bucket.hour}
                   className="flex h-full flex-1 flex-col items-center justify-end gap-1"
-                  title={`${formatHour(bucket.hour)} UTC: ${bucket.count} scans`}
+                  title={`${formatHour(bucket.hour)}: ${bucket.count} escaneos`}
                 >
                   <div
                     className={`w-full rounded-t ${
@@ -168,13 +214,13 @@ export default async function AdminMetricsPage({ params }: MetricsPageProps) {
         </section>
 
         <section className={cardClassName}>
-          <h2 className="text-lg font-bold text-[#f1f1ed]">Scans by type</h2>
+          <h2 className="text-lg font-bold text-[#f1f1ed]">Escaneos por tipo</h2>
           <p className="mt-1 text-sm text-[#9ca3af]">
-            Which kind of badge attendees engage with the most.
+            Qué tipo de insignia es la que más atrae a los asistentes.
           </p>
 
           {Object.keys(metrics.byType).length === 0 ? (
-            <p className="mt-5 text-sm text-[#9ca3af]">No scans yet.</p>
+            <p className="mt-5 text-sm text-[#9ca3af]">Todavía no hay escaneos.</p>
           ) : (
             <ul className="mt-5 space-y-4">
               {Object.entries(metrics.byType)

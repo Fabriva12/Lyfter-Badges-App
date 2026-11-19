@@ -3,7 +3,7 @@ import Link from "next/link";
 import CreateEventForm from "@/components/admin/CreateEventForm";
 import StatCard from "@/components/admin/StatCard";
 import { cardClassName } from "@/components/admin/formStyles";
-import { formatUtcRange } from "@/lib/admin/format";
+import { formatEventRange } from "@/lib/admin/format";
 import type {
   AdminCompany,
   CompanyEventSummary,
@@ -30,33 +30,44 @@ export default function OrganizerDashboard({
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
-          Admin
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">Your company events</h1>
-        <p className="mt-2 text-sm text-[#9ca3af]">
-          Manage the badge lineup, the QR tokens and the event prize. You see
-          the events of every company you administer.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#36bde9]">
+            Admin
+          </p>
+          <h1 className="mt-2 text-2xl font-bold sm:text-3xl">
+            Eventos de tus empresas
+          </h1>
+          <p className="mt-2 text-sm text-[#9ca3af]">
+            Administrá las insignias, los tokens QR y el premio del evento. Ves
+            los eventos de todas las empresas que administrás.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/audit"
+          className="rounded-lg border border-[#394351] px-4 py-2 text-sm font-semibold text-[#d7dce3] transition hover:bg-[#272d36]"
+        >
+          Auditoría
+        </Link>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Events" value={events.length} />
-        <StatCard label="Attendees" value={totals.attendees} />
+        <StatCard label="Eventos" value={events.length} />
+        <StatCard label="Asistentes" value={totals.attendees} />
         <StatCard
-          label="Scans"
+          label="Escaneos"
           value={totals.scans}
-          hint={`${totals.badges} badges across all events`}
+          hint={`${totals.badges} insignias en todos los eventos`}
         />
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-bold text-[#f1f1ed]">Event list</h2>
+        <h2 className="text-lg font-bold text-[#f1f1ed]">Lista de eventos</h2>
 
         {events.length === 0 ? (
           <p className="rounded-xl border border-[#39424f] bg-[#252c35] px-4 py-8 text-center text-sm text-[#9ca3af]">
-            You have no events yet. Create the first one below.
+            Todavía no tenés eventos. Creá el primero abajo.
           </p>
         ) : (
           <ul className="grid gap-4 lg:grid-cols-2">
@@ -73,7 +84,7 @@ export default function OrganizerDashboard({
                       </p>
                     ) : null}
                     <p className="mt-1 text-sm text-[#9ca3af]">
-                      {formatUtcRange(event.startsAt, event.endsAt)}
+                      {formatEventRange(event.startsAt, event.endsAt)}
                     </p>
                     {event.location ? (
                       <p className="mt-1 text-sm text-[#9ca3af]">
@@ -97,17 +108,17 @@ export default function OrganizerDashboard({
 
                 <dl className="mt-5 grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-lg bg-[#1f252d] px-2 py-3">
-                    <dt className="text-xs text-[#9ca3af]">Attendees</dt>
+                    <dt className="text-xs text-[#9ca3af]">Asistentes</dt>
                     <dd className="mt-1 text-lg font-bold">
                       {event.attendees}
                     </dd>
                   </div>
                   <div className="rounded-lg bg-[#1f252d] px-2 py-3">
-                    <dt className="text-xs text-[#9ca3af]">Scans</dt>
+                    <dt className="text-xs text-[#9ca3af]">Escaneos</dt>
                     <dd className="mt-1 text-lg font-bold">{event.scans}</dd>
                   </div>
                   <div className="rounded-lg bg-[#1f252d] px-2 py-3">
-                    <dt className="text-xs text-[#9ca3af]">Badges</dt>
+                    <dt className="text-xs text-[#9ca3af]">Insignias</dt>
                     <dd className="mt-1 text-lg font-bold">{event.badges}</dd>
                   </div>
                 </dl>
@@ -117,13 +128,13 @@ export default function OrganizerDashboard({
                     href={`/admin/events/${event.id}`}
                     className="rounded-lg bg-[#a8d889] px-4 py-2 text-[#263021] transition hover:bg-[#b8e39a]"
                   >
-                    Manage event
+                    Administrar evento
                   </Link>
                   <Link
                     href={`/leaderboard?event=${event.slug}`}
                     className="rounded-lg border border-[#394351] px-4 py-2 text-[#d7dce3] transition hover:bg-[#272d36]"
                   >
-                    Public leaderboard
+                    Clasificación pública
                   </Link>
                 </div>
               </li>

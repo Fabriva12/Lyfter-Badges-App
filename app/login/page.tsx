@@ -18,14 +18,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#171b21] px-6 py-16 text-[#f1f1ed]">
+    <main className="flex min-h-dvh items-center justify-center bg-[#171b21] px-4 py-12 text-[#f1f1ed] sm:px-6 sm:py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-[#a8d889] text-xl font-bold text-[#243020]">
             L
           </div>
 
-          <h1 className="mt-5 text-3xl font-bold tracking-tight">
+          <h1 className="mt-5 text-2xl font-bold tracking-tight sm:text-3xl">
             Lyfter Badges
           </h1>
 

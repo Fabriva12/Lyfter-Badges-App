@@ -1,7 +1,6 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db";
@@ -20,6 +19,7 @@ const MISCONFIGURED_QR = "This QR code is not configured correctly.";
 const NEEDS_CHECK_IN =
   "Scan the welcome QR at the entrance before collecting badges.";
 const SCAN_LIMIT = "This QR code has reached its scan limit.";
+const UNAUTHENTICATED = "Your session expired. Please sign in again.";
 const UNEXPECTED_ERROR = "Something went wrong. Please try again.";
 
 // Prisma reports unique-constraint violations as P2002 errors.
@@ -29,20 +29,27 @@ function isUniqueViolation(error: unknown) {
   );
 }
 
-export async function claimScan(
-  _prevState: ScanFormState,
-  formData: FormData,
-): Promise<ScanFormState> {
-  const token = String(formData.get("token") ?? "").trim();
+export async function recordScan(rawToken: string): Promise<ScanFormState> {
+  const token = typeof rawToken === "string" ? rawToken.trim() : "";
 
   if (!token || token.length > 200) {
-    return { status: "error", message: INVALID_QR };
+    return {
+      status: "error",
+      message: INVALID_QR,
+      retryable: false,
+      reason: "invalid",
+    };
   }
 
   const session = await getSession();
 
   if (!session) {
-    redirect(`/login?next=${encodeURIComponent(`/s/${token}`)}`);
+    return {
+      status: "error",
+      message: UNAUTHENTICATED,
+      retryable: false,
+      reason: "unauthenticated",
+    };
   }
 
   const userId = session.user.id;
@@ -54,7 +61,12 @@ export async function claimScan(
     });
 
     if (!qr || !qr.active) {
-      return { status: "error", message: INACTIVE_QR };
+      return {
+        status: "error",
+        message: INACTIVE_QR,
+        retryable: false,
+        reason: "inactive",
+      };
     }
 
     if (qr.kind === "WELCOME") {
@@ -84,37 +96,18 @@ export async function claimScan(
     }
 
     if (!qr.eventBadge?.badge) {
-      return { status: "error", message: MISCONFIGURED_QR };
-    }
-
-    const now = new Date();
-
-    if (qr.startsAt && now < qr.startsAt) {
       return {
         status: "error",
-        message: "This QR code is not available yet.",
+        message: MISCONFIGURED_QR,
+        retryable: false,
+        reason: "misconfigured",
       };
     }
 
-    if (qr.expiresAt && now > qr.expiresAt) {
-      return {
-        status: "error",
-        message: "This QR code has expired.",
-      };
-    }
+    const eventBadge = qr.eventBadge;
 
-    const registration = await prisma.registration.findUnique({
-      where: { userId_eventId: { userId, eventId: qr.eventId } },
-    });
-
-    if (!registration) {
-      return { status: "error", message: NEEDS_CHECK_IN };
-    }
-
-    // Idempotent first: an attendee collects a badge once, whatever QR token
-    // they used. Report it as a success instead of swallowing a unique error.
     const badgePayload = {
-      eventBadgeId: qr.eventBadge.id,
+      eventBadgeId: eventBadge.id,
       name: qr.eventBadge.badge.name,
       description: qr.eventBadge.badge.description,
       imageUrl: qr.eventBadge.badge.imageUrl,
@@ -126,7 +119,7 @@ export async function claimScan(
       where: {
         userId_eventBadgeId: {
           userId,
-          eventBadgeId: qr.eventBadge.id,
+          eventBadgeId: eventBadge.id,
         },
       },
       select: { id: true, xpAwarded: true },
@@ -145,16 +138,46 @@ export async function claimScan(
       };
     }
 
-    // The count-then-create check below is racy, which is acceptable: the
-    // UNIQUE(userId, qrTokenId) constraint is the real per-user protection.
-    if (qr.maxScans !== null) {
-      const scanCount = await prisma.scan.count({
-        where: { qrTokenId: qr.id },
-      });
+    const now = new Date();
 
-      if (scanCount >= qr.maxScans) {
-        return { status: "error", message: SCAN_LIMIT };
-      }
+    if (qr.startsAt && now < qr.startsAt) {
+      return {
+        status: "error",
+        message: "This QR code is not available yet.",
+        retryable: false,
+        reason: "not_started",
+      };
+    }
+
+    if (qr.expiresAt && now > qr.expiresAt) {
+      return {
+        status: "error",
+        message: "This QR code has expired.",
+        retryable: false,
+        reason: "expired",
+      };
+    }
+
+    if (eventBadge.startsAt && now < eventBadge.startsAt) {
+      return {
+        status: "error",
+        message: "This badge is not available yet.",
+        retryable: false,
+        reason: "not_started",
+      };
+    }
+
+    const registration = await prisma.registration.findUnique({
+      where: { userId_eventId: { userId, eventId: qr.eventId } },
+    });
+
+    if (!registration) {
+      return {
+        status: "error",
+        message: NEEDS_CHECK_IN,
+        retryable: false,
+        reason: "needs_check_in",
+      };
     }
 
     const previousLevel = await getLevelProgress(userId);
@@ -163,15 +186,41 @@ export async function claimScan(
     let xpAwarded = badgePayload.xpAwarded;
 
     try {
-      await prisma.scan.create({
-        data: {
-          userId,
-          qrTokenId: qr.id,
-          eventBadgeId: qr.eventBadge.id,
-          eventId: qr.eventId,
-          xpAwarded: badgePayload.xpAwarded,
-        },
+      const claim = await prisma.$transaction(async (tx) => {
+        // Lock the QR row so concurrent claims cannot all pass the cap check.
+        await tx.$queryRaw`SELECT id FROM "QrToken" WHERE id = ${qr.id} FOR UPDATE`;
+
+        if (qr.maxScans !== null) {
+          const scanCount = await tx.scan.count({
+            where: { qrTokenId: qr.id },
+          });
+
+          if (scanCount >= qr.maxScans) {
+            return { limited: true as const };
+          }
+        }
+
+        await tx.scan.create({
+          data: {
+            userId,
+            qrTokenId: qr.id,
+            eventBadgeId: eventBadge.id,
+            eventId: qr.eventId,
+            xpAwarded: badgePayload.xpAwarded,
+          },
+        });
+
+        return { limited: false as const };
       });
+
+      if (claim.limited) {
+        return {
+          status: "error",
+          message: SCAN_LIMIT,
+          retryable: false,
+          reason: "scan_limit",
+        };
+      }
     } catch (error) {
       if (!isUniqueViolation(error)) {
         throw error;
@@ -186,7 +235,7 @@ export async function claimScan(
         where: {
           userId_eventBadgeId: {
             userId,
-            eventBadgeId: qr.eventBadge.id,
+            eventBadgeId: eventBadge.id,
           },
         },
         select: { xpAwarded: true },
@@ -232,6 +281,11 @@ export async function claimScan(
     };
   } catch (error) {
     console.error(error);
-    return { status: "error", message: UNEXPECTED_ERROR };
+    return {
+      status: "error",
+      message: UNEXPECTED_ERROR,
+      retryable: true,
+      reason: "unexpected",
+    };
   }
 }

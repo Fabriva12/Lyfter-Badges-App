@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+import { formatDate } from "@/lib/date";
 import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -93,12 +94,7 @@ export default async function Image({ params }: ImageParams) {
   }
 
   const { badge, event } = eventBadge;
-  const eventDate = event.startsAt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  const eventDate = formatDate(event.startsAt);
 
   return new ImageResponse(
     (

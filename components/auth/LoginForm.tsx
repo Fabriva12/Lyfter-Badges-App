@@ -34,7 +34,7 @@ export default function LoginForm({ next }: LoginFormProps) {
   return (
     <form
       action={formAction}
-      className="rounded-xl border border-[#39424f] bg-[#252c35] p-7 shadow-2xl shadow-black/30 sm:p-8"
+      className="rounded-xl border border-[#39424f] bg-[#252c35] p-5 shadow-2xl shadow-black/30 sm:p-8"
     >
       <input type="hidden" name="intent" value={mode} />
       <input type="hidden" name="next" value={next ?? ""} />

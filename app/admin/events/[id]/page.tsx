@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import DeleteEventForm from "@/components/admin/DeleteEventForm";
 import EventForm from "@/components/admin/EventForm";
 import EventGallery from "@/components/admin/EventGallery";
 import EventTabs from "@/components/admin/EventTabs";
@@ -9,12 +10,12 @@ import ScanTable from "@/components/admin/ScanTable";
 import StatCard from "@/components/admin/StatCard";
 import { cardClassName } from "@/components/admin/formStyles";
 import { requireEventForAdmin } from "@/lib/admin/guards";
-import { formatUtcRange } from "@/lib/admin/format";
+import { formatDateTime } from "@/lib/admin/format";
 import { getEventMetrics, getRecentEventScans } from "@/lib/admin/queries";
 import { EVENT_MODE_LABELS, EVENT_STATUS_LABELS } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Event · Admin · Lyfter Badges",
+  title: "Evento · Admin · Lyfter Badges",
 };
 
 interface EventPageProps {
@@ -42,17 +43,24 @@ export default async function AdminEventPage({
           href="/admin"
           className="text-sm font-semibold text-[#9ca3af] transition hover:text-[#f1f1ed]"
         >
-          ← All events
+          ← Todos los eventos
         </Link>
 
-        <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">{event.name}</h1>
+        <header className="mt-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-3xl">{event.name}</h1>
             <p className="mt-2 text-sm text-[#9ca3af]">
-              {formatUtcRange(event.startsAt, event.endsAt)}
-              {event.location ? ` · ${event.location}` : ""}
-              {event.country ? `, ${event.country}` : ""}
+              Inicio: {formatDateTime(event.startsAt)}
             </p>
+            <p className="mt-1 text-sm text-[#9ca3af]">
+              Fin: {formatDateTime(event.endsAt)}
+            </p>
+            {event.location ? (
+              <p className="mt-1 text-sm text-[#9ca3af]">
+                {event.location}
+                {event.country ? `, ${event.country}` : ""}
+              </p>
+            ) : null}
             <p className="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide">
               <span className="rounded-full border border-[#39424f] px-3 py-1 text-[#9ca3af]">
                 {EVENT_MODE_LABELS[event.mode] ?? event.mode}
@@ -70,29 +78,29 @@ export default async function AdminEventPage({
             href={`/leaderboard?event=${event.slug}`}
             className="rounded-lg border border-[#394351] px-4 py-2 text-sm font-semibold text-[#d7dce3] transition hover:bg-[#272d36]"
           >
-            Public leaderboard
+            Clasificación pública
           </Link>
         </header>
       </div>
 
       {saved === "1" ? (
-        <Notice tone="success">Event saved. The public views are fresh.</Notice>
+        <Notice tone="success">Evento guardado. Las vistas públicas están actualizadas.</Notice>
       ) : null}
 
       {saved === "image" ? (
-        <Notice tone="success">Gallery updated.</Notice>
+        <Notice tone="success">Galería actualizada.</Notice>
       ) : null}
 
       <EventTabs eventId={event.id} active="overview" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Attendees" value={metrics.attendees} />
-        <StatCard label="Scans" value={metrics.scans} />
-        <StatCard label="Badges" value={metrics.badges} />
+        <StatCard label="Asistentes" value={metrics.attendees} />
+        <StatCard label="Escaneos" value={metrics.scans} />
+        <StatCard label="Insignias" value={metrics.badges} />
         <StatCard
-          label="Active QR tokens"
+          label="Tokens QR activos"
           value={metrics.activeTokens}
-          hint={`${metrics.xpAwarded} XP awarded in this event`}
+          hint={`${metrics.xpAwarded} XP otorgados en este evento`}
         />
       </div>
 
@@ -101,25 +109,33 @@ export default async function AdminEventPage({
 
         <section className={cardClassName}>
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-bold text-[#f1f1ed]">Recent scans</h2>
+            <h2 className="text-lg font-bold text-[#f1f1ed]">Escaneos recientes</h2>
             <Link
               href={`/admin/events/${event.id}/scans`}
               className="text-sm font-semibold text-[#36bde9] hover:text-[#7fd8f5]"
             >
-              View all
+              Ver todos
             </Link>
           </div>
 
           <div className="mt-5">
             <ScanTable
               scans={recentScans}
-              emptyMessage="Nobody scanned a badge in this event yet."
+              emptyMessage="Todavía nadie escaneó una insignia en este evento."
             />
           </div>
         </section>
       </div>
 
       <EventGallery eventId={event.id} images={event.images} />
+
+      <DeleteEventForm
+        eventId={event.id}
+        eventName={event.name}
+        attendees={metrics.attendees}
+        scans={metrics.scans}
+        badges={metrics.badges}
+      />
     </div>
   );
 }

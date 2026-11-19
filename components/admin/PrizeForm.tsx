@@ -40,18 +40,18 @@ export default function PrizeForm({
       <input type="hidden" name="eventId" value={eventId} />
 
       <h2 className="text-lg font-bold text-[#f1f1ed]">
-        {prize ? "Edit prize" : "Create prize"}
+        {prize ? "Editar premio" : "Crear premio"}
       </h2>
       <p className="mt-1 text-sm text-[#9ca3af]">
-        The prize stays a secret for attendees until they complete the required
-        badge count. Announcing it reveals the details to everyone without
-        granting it.
+        El premio permanece secreto para los asistentes hasta que completen la
+        cantidad de insignias requerida. Anunciarlo revela los detalles a todos
+        sin otorgarlo.
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label htmlFor="prize-name" className={labelClassName}>
-            Name
+            Nombre
           </label>
           <input
             id="prize-name"
@@ -59,7 +59,7 @@ export default function PrizeForm({
             required
             maxLength={120}
             defaultValue={prize?.name ?? ""}
-            placeholder="Lyfter Swag Kit"
+            placeholder="Kit de Lyfter"
             className={inputClassName}
             disabled={!canSave}
           />
@@ -67,7 +67,7 @@ export default function PrizeForm({
 
         <div>
           <label htmlFor="prize-required" className={labelClassName}>
-            Required badges
+            Insignias requeridas
           </label>
           <input
             id="prize-required"
@@ -82,13 +82,14 @@ export default function PrizeForm({
             disabled={!canSave}
           />
           <p className="mt-1 text-xs text-[#9ca3af]">
-            This event has {badgeCount} {badgeCount === 1 ? "badge" : "badges"}.
+            Este evento tiene {badgeCount}{" "}
+            {badgeCount === 1 ? "insignia" : "insignias"}.
           </p>
         </div>
 
         <div>
           <label htmlFor="prize-image" className={labelClassName}>
-            Image URL (optional)
+            URL de imagen (opcional)
           </label>
           <input
             id="prize-image"
@@ -104,7 +105,7 @@ export default function PrizeForm({
 
         <div className="sm:col-span-2">
           <label htmlFor="prize-description" className={labelClassName}>
-            Description
+            Descripción
           </label>
           <textarea
             id="prize-description"
@@ -125,13 +126,13 @@ export default function PrizeForm({
             disabled={!canSave}
             className="h-4 w-4 rounded border-[#39424f] bg-[#171b21]"
           />
-          Announce the prize to every attendee now
+          Anunciar el premio a todos los asistentes ahora
         </label>
       </div>
 
       {!canSave ? (
         <p className="mt-4 rounded-lg border border-[#ffc875]/40 bg-[#ffc875]/10 px-4 py-3 text-sm font-medium text-[#ffe0b2]">
-          Add at least one badge to the event before creating a prize.
+          Agregá al menos una insignia al evento antes de crear un premio.
         </p>
       ) : null}
 
@@ -149,7 +150,7 @@ export default function PrizeForm({
         disabled={isPending || !canSave}
         className={`mt-5 ${primaryButtonClassName}`}
       >
-        {isPending ? "Saving…" : prize ? "Save prize" : "Create prize"}
+        {isPending ? "Guardando…" : prize ? "Guardar premio" : "Crear premio"}
       </button>
     </form>
   );

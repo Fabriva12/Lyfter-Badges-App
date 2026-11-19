@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="flex flex-col gap-6 bg-[#282f3a] px-10 py-7 md:flex-row md:items-center md:justify-between">
+    <footer className="flex flex-col gap-5 bg-[#282f3a] px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 md:flex-row md:items-center md:justify-between lg:px-10">
       {/* Logo */}
       <Link
         href="/"
@@ -17,7 +17,7 @@ export default function Footer() {
       </Link>
 
       {/* Links */}
-      <div className="flex gap-7 text-sm text-[#89919e]">
+      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#89919e]">
         <a href="#" className="transition hover:text-white">
           Términos
         </a>

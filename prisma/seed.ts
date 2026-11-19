@@ -47,6 +47,98 @@ async function upsertCredentialAccount(userId: string) {
   });
 }
 
+interface DemoBadgeSeed {
+  eventId: string;
+  qrToken: string;
+  name: string;
+  description: string;
+  xpValue: number;
+  room: string;
+  type: "TALK" | "STAND" | "WELCOME";
+  rarity: "COMMON" | "RARE" | "LIMITED";
+  iconKey: string;
+}
+
+async function upsertDemoBadge(input: DemoBadgeSeed) {
+  const existingToken = await prisma.qrToken.findUnique({
+    where: { token: input.qrToken },
+    select: {
+      eventId: true,
+      eventBadge: { select: { id: true, badgeId: true } },
+    },
+  });
+
+  if (existingToken?.eventId === input.eventId && existingToken.eventBadge) {
+    const { id: eventBadgeId, badgeId } = existingToken.eventBadge;
+    const conflicting = await prisma.badge.findUnique({
+      where: { name: input.name },
+      select: { id: true },
+    });
+
+    if (conflicting && conflicting.id !== badgeId) {
+      const usage = await prisma.eventBadge.count({
+        where: { badgeId: conflicting.id },
+      });
+
+      if (usage === 0) {
+        await prisma.badge.delete({ where: { id: conflicting.id } });
+      }
+    }
+
+    await prisma.badge.update({
+      where: { id: badgeId },
+      data: {
+        name: input.name,
+        description: input.description,
+        xpValue: input.xpValue,
+        type: input.type,
+        rarity: input.rarity,
+        iconKey: input.iconKey,
+      },
+    });
+
+    await prisma.eventBadge.update({
+      where: { id: eventBadgeId },
+      data: { room: input.room },
+    });
+
+    return { badgeId, eventBadgeId };
+  }
+
+  const badge = await prisma.badge.upsert({
+    where: { name: input.name },
+    update: {
+      description: input.description,
+      xpValue: input.xpValue,
+      type: input.type,
+      rarity: input.rarity,
+      iconKey: input.iconKey,
+    },
+    create: {
+      name: input.name,
+      description: input.description,
+      xpValue: input.xpValue,
+      type: input.type,
+      rarity: input.rarity,
+      iconKey: input.iconKey,
+    },
+  });
+
+  const eventBadge = await prisma.eventBadge.upsert({
+    where: {
+      eventId_badgeId: { eventId: input.eventId, badgeId: badge.id },
+    },
+    update: { room: input.room },
+    create: {
+      eventId: input.eventId,
+      badgeId: badge.id,
+      room: input.room,
+    },
+  });
+
+  return { badgeId: badge.id, eventBadgeId: eventBadge.id };
+}
+
 async function main() {
   for (const level of levels) {
     await prisma.level.upsert({
@@ -148,32 +240,31 @@ async function main() {
     },
   });
 
-  // The dates match the ones already stored in the database. The upsert
-  // updates them, so the seed converges with the real data instead of
-  // drifting away from it.
+  // Dates are stored in UTC. With America/Costa_Rica (UTC-6) they render at
+  // the local times documented for the demo.
   const event = await prisma.event.upsert({
     where: { slug: "demo-2026" },
     update: {
-      name: "Lyfter Demo 2026",
-      description: "A demo event for local development.",
-      location: "Buenos Aires",
-      country: "Argentina",
+      name: "Lyfter Demo Costa Rica 2026",
+      description: "Evento de demostración para desarrollo local.",
+      location: "San José",
+      country: "Costa Rica",
       mode: "IN_PERSON",
       status: "ACTIVE",
-      startsAt: new Date("2026-11-14T19:00:00.000Z"),
-      endsAt: new Date("2026-11-15T04:00:00.000Z"),
+      startsAt: new Date("2026-11-20T16:00:00.000Z"),
+      endsAt: new Date("2026-11-20T22:00:00.000Z"),
       organizerId: "demo-organizer",
       companyId: company.id,
     },
     create: {
-      name: "Lyfter Demo 2026",
-      description: "A demo event for local development.",
-      location: "Buenos Aires",
-      country: "Argentina",
+      name: "Lyfter Demo Costa Rica 2026",
+      description: "Evento de demostración para desarrollo local.",
+      location: "San José",
+      country: "Costa Rica",
       mode: "IN_PERSON",
       status: "ACTIVE",
-      startsAt: new Date("2026-11-14T19:00:00.000Z"),
-      endsAt: new Date("2026-11-15T04:00:00.000Z"),
+      startsAt: new Date("2026-11-20T16:00:00.000Z"),
+      endsAt: new Date("2026-11-20T22:00:00.000Z"),
       organizerId: "demo-organizer",
       companyId: company.id,
       slug: "demo-2026",
@@ -190,13 +281,13 @@ async function main() {
         {
           eventId: event.id,
           url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87",
-          alt: "Attendees at the Lyfter Demo 2026 main stage",
+          alt: "Asistentes en el escenario principal de Lyfter Demo Costa Rica 2026",
           sortOrder: 0,
         },
         {
           eventId: event.id,
           url: "https://images.unsplash.com/photo-1511578314322-379afb476865",
-          alt: "Networking area during the demo event",
+          alt: "Área de networking durante el evento demo",
           sortOrder: 1,
         },
       ],
@@ -205,10 +296,10 @@ async function main() {
 
   const demoBadges = [
     {
-      name: "Opening Keynote",
-      description: "Kick-off talk on the state of the platform.",
+      name: "Charla inaugural",
+      description: "Charla de apertura sobre el estado de la plataforma.",
       xpValue: 50,
-      room: "Main stage",
+      room: "Escenario principal",
       qrToken: "demo-keynote",
       type: "TALK",
       rarity: "COMMON",
@@ -216,17 +307,17 @@ async function main() {
     },
     {
       name: "React Server Components",
-      description: "Deep dive into the server-first rendering model.",
+      description: "Análisis del modelo de renderizado server-first.",
       xpValue: 60,
-      room: "Room A",
+      room: "Sala A",
       qrToken: "demo-rsc",
       type: "TALK",
       rarity: "COMMON",
       iconKey: "code",
     },
     {
-      name: "Supabase Stand",
-      description: "Meet the Supabase team at their stand.",
+      name: "Stand de Supabase",
+      description: "Conocé al equipo de Supabase en su stand.",
       xpValue: 40,
       room: "Stand 3",
       qrToken: "demo-supabase",
@@ -235,10 +326,10 @@ async function main() {
       iconKey: "database",
     },
     {
-      name: "Better Auth Workshop",
-      description: "Hands-on authentication workshop.",
+      name: "Taller de Better Auth",
+      description: "Taller práctico de autenticación.",
       xpValue: 70,
-      room: "Room B",
+      room: "Sala B",
       qrToken: "demo-auth",
       type: "TALK",
       rarity: "LIMITED",
@@ -251,52 +342,26 @@ async function main() {
   const eventBadgeIds: Record<string, string> = {};
 
   for (const demoBadge of demoBadges) {
-    const badge = await prisma.badge.upsert({
-      where: { name: demoBadge.name },
-      update: {
-        description: demoBadge.description,
-        xpValue: demoBadge.xpValue,
-        type: demoBadge.type,
-        rarity: demoBadge.rarity,
-        iconKey: demoBadge.iconKey,
-      },
-      create: {
-        name: demoBadge.name,
-        description: demoBadge.description,
-        xpValue: demoBadge.xpValue,
-        type: demoBadge.type,
-        rarity: demoBadge.rarity,
-        iconKey: demoBadge.iconKey,
-      },
+    const { eventBadgeId } = await upsertDemoBadge({
+      eventId: event.id,
+      ...demoBadge,
     });
 
-    const eventBadge = await prisma.eventBadge.upsert({
-      where: {
-        eventId_badgeId: { eventId: event.id, badgeId: badge.id },
-      },
-      update: { room: demoBadge.room },
-      create: {
-        eventId: event.id,
-        badgeId: badge.id,
-        room: demoBadge.room,
-      },
-    });
-
-    eventBadgeIds[demoBadge.qrToken] = eventBadge.id;
+    eventBadgeIds[demoBadge.qrToken] = eventBadgeId;
 
     await prisma.qrToken.upsert({
       where: { token: demoBadge.qrToken },
       update: {
         kind: "BADGE",
         eventId: event.id,
-        eventBadgeId: eventBadge.id,
+        eventBadgeId,
         active: true,
       },
       create: {
         token: demoBadge.qrToken,
         kind: "BADGE",
         eventId: event.id,
-        eventBadgeId: eventBadge.id,
+        eventBadgeId,
         active: true,
       },
     });
@@ -341,21 +406,21 @@ async function main() {
   await prisma.prize.upsert({
     where: { eventId: event.id },
     update: {
-      name: "Lyfter Swag Kit",
-      description: "Complete every badge to unlock it.",
+      name: "Kit de Lyfter",
+      description: "Completá todas las insignias para desbloquearlo.",
       requiredBadgesCount: 4,
       revealedAt: null,
     },
     create: {
       eventId: event.id,
-      name: "Lyfter Swag Kit",
-      description: "Complete every badge to unlock it.",
+      name: "Kit de Lyfter",
+      description: "Completá todas las insignias para desbloquearlo.",
       requiredBadgesCount: 4,
       revealedAt: null,
     },
   });
 
-  console.log('Seeded demo event "Lyfter Demo 2026" with 5 QR tokens.');
+  console.log('Seeded demo event "Lyfter Demo Costa Rica 2026" with 5 QR tokens.');
 
   // Demo attendees with different XP totals, so the leaderboard has a real
   // ranking to show instead of a single row. Ada keeps a partial collection
@@ -456,25 +521,25 @@ async function main() {
   const meetup = await prisma.event.upsert({
     where: { slug: "meetup-2026" },
     update: {
-      name: "Lyfter Meetup 2026",
-      description: "A smaller meetup with an announced prize.",
-      location: "Cordoba",
-      country: "Argentina",
+      name: "Lyfter Meetup Costa Rica 2026",
+      description: "Meetup más pequeño con un premio ya anunciado.",
+      location: "Escazú",
+      country: "Costa Rica",
       mode: "HYBRID",
       status: "ACTIVE",
-      startsAt: new Date("2026-12-03T19:00:00.000Z"),
-      endsAt: new Date("2026-12-04T04:00:00.000Z"),
+      startsAt: new Date("2026-12-04T17:00:00.000Z"),
+      endsAt: new Date("2026-12-04T23:00:00.000Z"),
       organizerId: "demo-organizer",
     },
     create: {
-      name: "Lyfter Meetup 2026",
-      description: "A smaller meetup with an announced prize.",
-      location: "Cordoba",
-      country: "Argentina",
+      name: "Lyfter Meetup Costa Rica 2026",
+      description: "Meetup más pequeño con un premio ya anunciado.",
+      location: "Escazú",
+      country: "Costa Rica",
       mode: "HYBRID",
       status: "ACTIVE",
-      startsAt: new Date("2026-12-03T19:00:00.000Z"),
-      endsAt: new Date("2026-12-04T04:00:00.000Z"),
+      startsAt: new Date("2026-12-04T17:00:00.000Z"),
+      endsAt: new Date("2026-12-04T23:00:00.000Z"),
       organizerId: "demo-organizer",
       slug: "meetup-2026",
     },
@@ -482,20 +547,20 @@ async function main() {
 
   const meetupBadges = [
     {
-      name: "Meetup Check-in",
-      description: "Welcome badge for showing up to the meetup.",
+      name: "Registro del meetup",
+      description: "Insignia de bienvenida por asistir al meetup.",
       xpValue: 20,
-      room: "Front desk",
+      room: "Recepción",
       qrToken: "demo-meetup-checkin",
       type: "WELCOME",
       rarity: "COMMON",
       iconKey: "ticket",
     },
     {
-      name: "Meetup Lightning Talks",
-      description: "Badge for the lightning talks track.",
+      name: "Charlas relámpago",
+      description: "Insignia por participar en las charlas relámpago.",
       xpValue: 30,
-      room: "Room C",
+      room: "Sala C",
       qrToken: "demo-meetup-talks",
       type: "TALK",
       rarity: "COMMON",
@@ -508,33 +573,9 @@ async function main() {
   const meetupEventBadgeIds: Record<string, string> = {};
 
   for (const meetupBadge of meetupBadges) {
-    const badge = await prisma.badge.upsert({
-      where: { name: meetupBadge.name },
-      update: {
-        description: meetupBadge.description,
-        xpValue: meetupBadge.xpValue,
-        type: meetupBadge.type,
-        rarity: meetupBadge.rarity,
-        iconKey: meetupBadge.iconKey,
-      },
-      create: {
-        name: meetupBadge.name,
-        description: meetupBadge.description,
-        xpValue: meetupBadge.xpValue,
-        type: meetupBadge.type,
-        rarity: meetupBadge.rarity,
-        iconKey: meetupBadge.iconKey,
-      },
-    });
-
-    const eventBadge = await prisma.eventBadge.upsert({
-      where: { eventId_badgeId: { eventId: meetup.id, badgeId: badge.id } },
-      update: { room: meetupBadge.room },
-      create: {
-        eventId: meetup.id,
-        badgeId: badge.id,
-        room: meetupBadge.room,
-      },
+    const { eventBadgeId } = await upsertDemoBadge({
+      eventId: meetup.id,
+      ...meetupBadge,
     });
 
     await prisma.qrToken.upsert({
@@ -542,14 +583,14 @@ async function main() {
       update: {
         kind: "BADGE",
         eventId: meetup.id,
-        eventBadgeId: eventBadge.id,
+        eventBadgeId,
         active: true,
       },
       create: {
         token: meetupBadge.qrToken,
         kind: "BADGE",
         eventId: meetup.id,
-        eventBadgeId: eventBadge.id,
+        eventBadgeId,
         active: true,
       },
     });
@@ -562,7 +603,7 @@ async function main() {
     if (token) {
       meetupTokenIds[meetupBadge.qrToken] = token.id;
       meetupTokenXp[meetupBadge.qrToken] = meetupBadge.xpValue;
-      meetupEventBadgeIds[meetupBadge.qrToken] = eventBadge.id;
+      meetupEventBadgeIds[meetupBadge.qrToken] = eventBadgeId;
     }
   }
 
@@ -586,17 +627,17 @@ async function main() {
   await prisma.prize.upsert({
     where: { eventId: meetup.id },
     update: {
-      name: "Coffee & Stickers",
-      description: "Collect both meetup badges to earn it.",
+      name: "Café y pegatinas",
+      description: "Conseguí ambas insignias del meetup para ganarlo.",
       requiredBadgesCount: 2,
-      revealedAt: new Date("2026-11-20T15:00:00.000Z"),
+      revealedAt: new Date("2026-11-27T16:00:00.000Z"),
     },
     create: {
       eventId: meetup.id,
-      name: "Coffee & Stickers",
-      description: "Collect both meetup badges to earn it.",
+      name: "Café y pegatinas",
+      description: "Conseguí ambas insignias del meetup para ganarlo.",
       requiredBadgesCount: 2,
-      revealedAt: new Date("2026-11-20T15:00:00.000Z"),
+      revealedAt: new Date("2026-11-27T16:00:00.000Z"),
     },
   });
 
@@ -628,7 +669,9 @@ async function main() {
     });
   }
 
-  console.log('Seeded demo event "Lyfter Meetup 2026" with an announced prize.');
+  console.log(
+    'Seeded demo event "Lyfter Meetup Costa Rica 2026" with an announced prize.',
+  );
 }
 
 main()

@@ -5,6 +5,7 @@ import {
   bucketScansByHour,
   formatHour,
   peakHour,
+  topN,
 } from "./metrics";
 
 describe("bucketScansByHour", () => {
@@ -15,15 +16,15 @@ describe("bucketScansByHour", () => {
     expect(buckets.every((bucket) => bucket.count === 0)).toBe(true);
   });
 
-  it("counts scans using the UTC hour, not the local one", () => {
+  it("counts scans using the Costa Rica hour", () => {
     const buckets = bucketScansByHour([
       new Date("2026-05-10T13:05:00.000Z"),
       new Date("2026-05-10T13:45:00.000Z"),
       new Date("2026-05-10T09:10:00.000Z"),
     ]);
 
-    expect(buckets[13]?.count).toBe(2);
-    expect(buckets[9]?.count).toBe(1);
+    expect(buckets[7]?.count).toBe(2);
+    expect(buckets[3]?.count).toBe(1);
     expect(buckets.reduce((total, bucket) => total + bucket.count, 0)).toBe(3);
   });
 });
@@ -40,7 +41,7 @@ describe("peakHour", () => {
       new Date("2026-05-10T16:00:00.000Z"),
     ]);
 
-    expect(peakHour(buckets)).toEqual({ hour: 11, count: 2 });
+    expect(peakHour(buckets)).toEqual({ hour: 5, count: 2 });
   });
 
   it("keeps the earliest hour when counts tie", () => {
@@ -49,7 +50,7 @@ describe("peakHour", () => {
       new Date("2026-05-10T15:00:00.000Z"),
     ]);
 
-    expect(peakHour(buckets)?.hour).toBe(8);
+    expect(peakHour(buckets)?.hour).toBe(2);
   });
 });
 
@@ -71,5 +72,33 @@ describe("barWidth", () => {
     expect(barWidth(5, 10)).toBe(50);
     expect(barWidth(1, 3)).toBe(33);
     expect(barWidth(10, 10)).toBe(100);
+  });
+});
+
+describe("topN", () => {
+  const rows = [
+    { name: "a", scans: 3 },
+    { name: "b", scans: 10 },
+    { name: "c", scans: 7 },
+  ];
+
+  it("sorts by score descending and caps the list", () => {
+    expect(topN(rows, 2, (row) => row.scans).map((row) => row.name)).toEqual([
+      "b",
+      "c",
+    ]);
+  });
+
+  it("does not mutate the input array", () => {
+    const copy = [...rows];
+
+    topN(rows, 2, (row) => row.scans);
+
+    expect(rows).toEqual(copy);
+  });
+
+  it("handles a zero or negative limit", () => {
+    expect(topN(rows, 0, (row) => row.scans)).toEqual([]);
+    expect(topN(rows, -5, (row) => row.scans)).toEqual([]);
   });
 });

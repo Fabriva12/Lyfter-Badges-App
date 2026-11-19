@@ -71,7 +71,7 @@ describe("parseEventInput", () => {
   it("keeps mode, status and country when they are valid", () => {
     const result = parseEventInput({
       name: "Remote Day",
-      country: "Argentina",
+      country: "Costa Rica",
       mode: "VIRTUAL",
       status: "ACTIVE",
       ...VALID_DATES,
@@ -85,7 +85,7 @@ describe("parseEventInput", () => {
 
     expect(result.value.mode).toBe("VIRTUAL");
     expect(result.value.status).toBe("ACTIVE");
-    expect(result.value.country).toBe("Argentina");
+    expect(result.value.country).toBe("Costa Rica");
   });
 
   it("rejects an invalid mode", () => {
@@ -118,7 +118,7 @@ describe("parseEventInput", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("reads datetime-local values as UTC", () => {
+  it("reads datetime-local values as Costa Rica wall time", () => {
     const result = parseEventInput({
       name: "Remote Day",
       ...VALID_DATES,
@@ -131,7 +131,7 @@ describe("parseEventInput", () => {
     }
 
     expect(result.value.startsAt.toISOString()).toBe(
-      "2026-05-10T09:00:00.000Z",
+      "2026-05-10T15:00:00.000Z",
     );
   });
 });

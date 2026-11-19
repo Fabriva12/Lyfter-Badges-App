@@ -60,6 +60,7 @@ export async function requireEventForAdmin(eventId: string) {
         endsAt: true,
         organizerId: true,
         companyId: true,
+        company: { select: { name: true } },
         images: {
           orderBy: { sortOrder: "asc" },
           select: { id: true, url: true, alt: true, sortOrder: true },

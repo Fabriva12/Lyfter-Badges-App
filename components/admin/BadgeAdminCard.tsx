@@ -1,7 +1,9 @@
+import BadgeEditForm from "@/components/admin/BadgeEditForm";
 import CreateTokenForm from "@/components/admin/CreateTokenForm";
 import PartnerAssignForm from "@/components/admin/PartnerAssignForm";
 import TokenCard from "@/components/admin/TokenCard";
-import { formatUtcDateTime } from "@/lib/admin/format";
+import { formatDateTime } from "@/lib/admin/format";
+import { toLocalInputValue } from "@/lib/date";
 import type { AdminBadge } from "@/lib/admin/queries";
 import { BadgeIcon } from "@/lib/badges/icons";
 import { BADGE_RARITY_LABELS, BADGE_TYPE_LABELS } from "@/lib/format";
@@ -57,7 +59,7 @@ export default async function BadgeAdminCard({
               +{badge.xpValue} XP
               {badge.room ? ` · ${badge.room}` : ""}
               {badge.startsAt
-                ? ` · starts ${formatUtcDateTime(badge.startsAt)} UTC`
+                ? ` · Inicio: ${formatDateTime(badge.startsAt)}`
                 : ""}
             </p>
             {badge.description ? (
@@ -69,7 +71,7 @@ export default async function BadgeAdminCard({
         <div className="text-right">
           <p className="text-2xl font-bold text-[#a8d889]">{badge.scans}</p>
           <p className="text-xs text-[#9ca3af]">
-            {badge.scans === 1 ? "scan" : "scans"}
+            {badge.scans === 1 ? "escaneo" : "escaneos"}
           </p>
         </div>
       </div>
@@ -83,13 +85,29 @@ export default async function BadgeAdminCard({
         />
       </div>
 
+      <BadgeEditForm
+        eventId={eventId}
+        eventBadgeId={badge.id}
+        name={badge.name}
+        description={badge.description}
+        xpValue={badge.xpValue}
+        type={badge.type}
+        rarity={badge.rarity}
+        iconKey={badge.iconKey}
+        room={badge.room}
+        startsAtValue={badge.startsAt ? toLocalInputValue(badge.startsAt) : ""}
+        catalogUsage={badge.catalogUsage}
+        scans={badge.scans}
+      />
+
       <div className="mt-6 border-t border-[#303743] pt-5">
-        <h4 className="text-sm font-bold text-[#f1f1ed]">QR tokens</h4>
+        <h4 className="text-sm font-bold text-[#f1f1ed]">Tokens QR</h4>
 
         <ul className="mt-3 space-y-3">
           {badge.tokens.length === 0 ? (
             <li className="text-sm text-[#9ca3af]">
-              No QR token yet. Create one to put it on the wall or the stand.
+              Todavía no hay tokens QR. Creá uno para ponerlo en la pared o en
+              el stand.
             </li>
           ) : (
             badge.tokens.map((token) => (
