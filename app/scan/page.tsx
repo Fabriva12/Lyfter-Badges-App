@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import QrScanner from "@/components/scan/QrScanner";
-import { prisma } from "@/lib/db";
+import { getRecentRegistrations } from "@/lib/gamification/queries";
 import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -11,12 +11,7 @@ export const metadata: Metadata = {
 export default async function ScanPage() {
   const session = await requireSession();
 
-  const registrations = await prisma.registration.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 6,
-    select: { eventId: true, event: { select: { name: true } } },
-  });
+  const registrations = await getRecentRegistrations(session.user.id);
 
   return (
     <main className="min-h-screen bg-[#171b21] text-[#f1f1ed]">

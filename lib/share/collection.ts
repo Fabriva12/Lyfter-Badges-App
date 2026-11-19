@@ -2,6 +2,14 @@ import { formatDate } from "@/lib/date";
 import { prisma } from "@/lib/db";
 import { parseShareToken } from "@/lib/share/token";
 
+/** Public badge detail shared by the badge page and its OpenGraph image. */
+export async function loadPublicEventBadge(eventBadgeId: string) {
+  return prisma.eventBadge.findUnique({
+    where: { id: eventBadgeId },
+    include: { badge: true, event: true },
+  });
+}
+
 export interface ShareCollectionBadge {
   name: string;
   type: string;

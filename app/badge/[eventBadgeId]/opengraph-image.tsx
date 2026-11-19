@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { formatDate } from "@/lib/date";
-import { prisma } from "@/lib/db";
+import { loadPublicEventBadge } from "@/lib/share/collection";
 
 export const runtime = "nodejs";
 export const alt = "Lyfter Badges";
@@ -21,10 +21,7 @@ export async function generateImageMetadata({ params }: ImageParams) {
   const { eventBadgeId } = await params;
 
   try {
-    const eventBadge = await prisma.eventBadge.findUnique({
-      where: { id: eventBadgeId },
-      include: { badge: true, event: true },
-    });
+    const eventBadge = await loadPublicEventBadge(eventBadgeId);
 
     if (!eventBadge) {
       return [{ id: "fallback", alt: "Lyfter Badges", size, contentType }];
@@ -84,10 +81,7 @@ function FallbackCard() {
 export default async function Image({ params }: ImageParams) {
   const { eventBadgeId } = await params;
 
-  const eventBadge = await prisma.eventBadge.findUnique({
-    where: { id: eventBadgeId },
-    include: { badge: true, event: true },
-  });
+  const eventBadge = await loadPublicEventBadge(eventBadgeId);
 
   if (!eventBadge) {
     return new ImageResponse(<FallbackCard />, { ...size });

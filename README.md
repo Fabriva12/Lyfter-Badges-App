@@ -13,6 +13,12 @@ administrador de la plataforma (`SUPER_ADMIN`) en `/super-admin`.
 El diseño técnico completo, las decisiones de arquitectura y los detalles del modelo de
 dominio están en [`PLAN.md`](./PLAN.md).
 
+## Documentación
+
+- [`docs/architecture.md`](./docs/architecture.md) — capas, regla de dependencias y flujos.
+- [`docs/database.md`](./docs/database.md) — entidades, relaciones e invariantes.
+- [`docs/schema.sql`](./docs/schema.sql) — SQL generado desde `prisma/schema.prisma`.
+
 ## Stack
 
 | Capa | Tecnología |

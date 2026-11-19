@@ -5,26 +5,19 @@ import { notFound } from "next/navigation";
 
 import ShareButtons from "@/components/share/ShareButtons";
 import { formatDate } from "@/lib/date";
-import { prisma } from "@/lib/db";
 import { getRequestOrigin } from "@/lib/request";
 import { buildShareText } from "@/lib/share";
+import { loadPublicEventBadge } from "@/lib/share/collection";
 
 interface BadgePageProps {
   params: Promise<{ eventBadgeId: string }>;
-}
-
-async function loadEventBadge(eventBadgeId: string) {
-  return prisma.eventBadge.findUnique({
-    where: { id: eventBadgeId },
-    include: { badge: true, event: true },
-  });
 }
 
 export async function generateMetadata({
   params,
 }: BadgePageProps): Promise<Metadata> {
   const { eventBadgeId } = await params;
-  const eventBadge = await loadEventBadge(eventBadgeId);
+  const eventBadge = await loadPublicEventBadge(eventBadgeId);
 
   if (!eventBadge) {
     return { title: "Badge not found" };
@@ -51,7 +44,7 @@ export async function generateMetadata({
 
 export default async function BadgePage({ params }: BadgePageProps) {
   const { eventBadgeId } = await params;
-  const eventBadge = await loadEventBadge(eventBadgeId);
+  const eventBadge = await loadPublicEventBadge(eventBadgeId);
 
   if (!eventBadge) {
     notFound();

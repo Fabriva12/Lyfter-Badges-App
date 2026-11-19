@@ -68,6 +68,34 @@ export function configTag() {
   return "gamification:config";
 }
 
+/** Full QR payload used by the claim page, including badge and event names. */
+export async function getQrTokenForClaim(token: string) {
+  return prisma.qrToken.findUnique({
+    where: { token },
+    include: { event: true, eventBadge: { include: { badge: true } } },
+  });
+}
+
+/** Whether the attendee already checked in to an event. */
+export async function getRegistrationForClaim(userId: string, eventId: string) {
+  return prisma.registration.findUnique({
+    where: {
+      userId_eventId: { userId, eventId },
+    },
+    select: { id: true },
+  });
+}
+
+/** Recent check-ins shown above the scanner, newest first. */
+export async function getRecentRegistrations(userId: string) {
+  return prisma.registration.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+    select: { eventId: true, event: { select: { name: true } } },
+  });
+}
+
 /**
  * `unstable_cache` stores its payload as JSON, so a `Date` comes back as an
  * ISO string on a cache hit. This turns it back into a `Date`.
